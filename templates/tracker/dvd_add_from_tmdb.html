@@ -210,40 +210,6 @@
                         </div>
                     </div>
                     
-                    <!-- Pricing Information -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="bi bi-currency-pound"></i> Pricing Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.purchase_price.id_for_label }}" class="form-label">Purchase Price (£)</label>
-                                    {{ form.purchase_price }}
-                                    {% if form.purchase_price.errors %}
-                                        <div class="text-danger">{{ form.purchase_price.errors }}</div>
-                                    {% endif %}
-                                    <div class="form-text">How much did you pay for this DVD?</div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.estimated_price.id_for_label }}" class="form-label">Estimated Value (£)</label>
-                                    <div class="input-group">
-                                        {{ form.estimated_price }}
-                                        <button type="button" class="btn btn-outline-primary" id="fetch-price-btn">
-                                            <i class="bi bi-link-45deg"></i> Get Price Links
-                                        </button>
-                                    </div>
-                                    {% if form.estimated_price.errors %}
-                                        <div class="text-danger">{{ form.estimated_price.errors }}</div>
-                                    {% endif %}
-                                    <div class="form-text">Estimated current market value</div>
-                                    <div id="price-estimate-result" class="mt-2" style="display: none;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{% url 'tracker:dvd_add' %}" class="btn btn-outline-secondary me-md-2">
                             <i class="bi bi-arrow-left"></i> Back
@@ -498,114 +464,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hideStorageBoxAutocomplete();
         }
     });
-    
-    // Add event listener for price estimation button
-    const priceBtn = document.getElementById('fetch-price-btn');
-    if (priceBtn) {
-        priceBtn.addEventListener('click', fetchPriceEstimate);
-    }
+
 });
 
-// Price estimation function
-function fetchPriceEstimate() {
-    console.log('fetchPriceEstimate called');
-    const movieName = document.getElementById('id_name').value;
-    let releaseYear = null;
-    {% if movie_data.release_date %}
-    releaseYear = {{ movie_data.release_date|slice:":4" }};
-    {% endif %}
-    const estimatedPriceInput = document.getElementById('id_estimated_price');
-    const fetchBtn = document.getElementById('fetch-price-btn');
-    const resultDiv = document.getElementById('price-estimate-result');
-    
-    if (!movieName) {
-        alert('Movie name is required to fetch price estimate.');
-        return;
-    }
-    
-    // Show loading state
-    fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Fetching...';
-    fetchBtn.disabled = true;
-    
-    fetch('{% url "tracker:fetch_price_estimate" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            movie_name: movieName,
-            release_year: releaseYear
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Automated price found
-            estimatedPriceInput.value = data.estimated_price;
-            let successHtml = `
-                <div class="alert alert-success">
-                    <strong>Price estimate found:</strong> £${data.estimated_price}<br>
-                    <small>Source: ${data.price_source}</small>
-            `;
-            
-            // Add Amazon URL if available
-            if (data.amazon_url) {
-                successHtml += `<br><small><a href="${data.amazon_url}" target="_blank" class="text-decoration-none">View on Amazon</a></small>`;
-            }
-            
-            // Add CamelCamelCamel URL if available
-            if (data.camel_url) {
-                successHtml += `<br><small><a href="${data.camel_url}" target="_blank" class="text-decoration-none">View price history on CamelCamelCamel</a></small>`;
-            }
-            
-            // Add individual prices if available
-            if (data.individual_prices && data.individual_prices.length > 1) {
-                successHtml += `<br><small>Individual prices: £${data.individual_prices.join(', £')}</small>`;
-            }
-            
-            // Add sources checked
-            if (data.sources_checked && data.sources_checked.length > 0) {
-                successHtml += `<br><small>Sources checked: ${data.sources_checked.join(', ')}</small>`;
-            }
-            
-            successHtml += `</div>`;
-            resultDiv.innerHTML = successHtml;
-            resultDiv.style.display = 'block';
-        } else {
-            // Show manual sources if automated pricing failed
-            resultDiv.innerHTML = `
-                <div class="alert alert-info">
-                    <strong>Automated pricing failed.</strong> Check these sources for current pricing:
-                    ${data.sources_checked && data.sources_checked.length > 0 ? 
-                        `<br><small>Attempted: ${data.sources_checked.join(', ')}</small>` : ''
-                    }
-                    <ul class="mt-2 mb-0">
-                        ${data.manual_sources.map(source => 
-                            `<li><a href="${source.url}" target="_blank" class="text-decoration-none">${source.name}</a></li>`
-                        ).join('')}
-                    </ul>
-                    <small class="text-muted mt-2 d-block">Enter the price manually after checking these sources.</small>
-                </div>
-            `;
-            resultDiv.style.display = 'block';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        resultDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <strong>Error fetching price estimate.</strong><br>
-                <small>${error.message}</small>
-            </div>
-        `;
-        resultDiv.style.display = 'block';
-    })
-    .finally(() => {
-        // Reset button state
-        fetchBtn.innerHTML = '<i class="bi bi-link-45deg"></i> Get Price Links';
-        fetchBtn.disabled = false;
-    });
-}
 </script>
 {% endblock %}
