@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}Collection Statistics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-graph-up"></i> Collection Statistics</h1>
+        <p class="text-muted mb-0">Insights and analytics for your DVD collection</p>
+    </div>
+    <div>
+        <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Collection
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-collection-play display-4 text-primary mb-2"></i>
+                <h3 class="mb-1">{{ total_dvds }}</h3>
+                <p class="text-muted mb-0">Total Movies</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-check-circle display-4 text-success mb-2"></i>
+                <h3 class="mb-1">{{ kept_dvds }}</h3>
+                <p class="text-muted mb-0">In Collection</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-star text-purple display-4 mb-2"></i>
+                <h3 class="mb-1">{{ tartan_dvds }}</h3>
+                <p class="text-muted mb-0">Tartan DVDs</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-boxes display-4 text-info mb-2"></i>
+                <h3 class="mb-1">{{ box_sets_count }}</h3>
+                <p class="text-muted mb-0">Box Sets</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Statistics -->
+<div class="row">
+    <!-- Collection Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Collection Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-2"></span>
+                            <span>Kept: <strong>{{ kept_dvds }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-danger me-2"></span>
+                            <span>Disposed: <strong>{{ disposed_dvds }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-danger me-2"></span>
+                            <span>Disposed: <strong>{{ disposed_dvds }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary me-2"></span>
+                            <span>Unopened: <strong>{{ unopened_dvds }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>Media Type</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2"></span>
+                            <span>Physical: <strong>{{ physical_dvds }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-info me-2"></span>
+                            <span>Digital: <strong>{{ digital_dvds }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating & Runtime Stats -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-star-half"></i> Rating & Runtime</h5>
+            </div>
+            <div class="card-body">
+                {% if rating_stats.rated_count > 0 %}
+                    <h6>Ratings</h6>
+                    <div class="row mb-3">
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ rating_stats.avg_rating|floatformat:1 }}</div>
+                            <small class="text-muted">Average</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ rating_stats.max_rating }}</div>
+                            <small class="text-muted">Highest</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ rating_stats.rated_count }}</div>
+                            <small class="text-muted">Rated</small>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if runtime_stats.runtime_count > 0 %}
+                    <h6>Runtime</h6>
+                    <div class="row">
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ runtime_stats.avg_runtime|floatformat:0 }}m</div>
+                            <small class="text-muted">Average</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ runtime_stats.max_runtime }}m</div>
+                            <small class="text-muted">Longest</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-number">{{ runtime_stats.total_runtime|floatformat:0 }}m</div>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">
+                        <i class="bi bi-info-circle"></i> 
+                        Total runtime: ~{% widthratio runtime_stats.total_runtime 60 1 %} hours
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top Genres -->
+    {% if top_genres %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tags"></i> Top Genres</h5>
+            </div>
+            <div class="card-body">
+                {% for genre, count in top_genres %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-light text-dark">{{ genre }}</span>
+                        <span class="fw-bold">{{ count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Box Sets -->
+    {% if top_box_sets %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-boxes"></i> Largest Box Sets</h5>
+            </div>
+            <div class="card-body">
+                {% for box_set in top_box_sets %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <a href="{% url 'tracker:box_set_detail' box_set.box_set_name %}" class="text-decoration-none">
+                            {{ box_set.box_set_name }}
+                        </a>
+                        <span class="badge bg-info">{{ box_set.movie_count }} movies</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Decade Breakdown & Recent Additions -->
+<div class="row">
+    {% if decade_stats %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar3"></i> Movies by Decade</h5>
+            </div>
+            <div class="card-body">
+                {% for decade, count in decade_stats %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ decade }}</span>
+                        <div>
+                            <span class="fw-bold me-2">{{ count }}</span>
+                            <div class="progress d-inline-block" style="width: 100px; height: 8px;">
+                                <div class="progress-bar" style="width: {% widthratio count max_decade_count 100 %}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Additions -->
+    {% if recent_additions %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Additions</h5>
+            </div>
+            <div class="card-body">
+                {% for dvd in recent_additions %}
+                    <div class="d-flex align-items-center mb-2">
+                        {% if dvd.poster_url %}
+                            <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="me-2 rounded" style="width: 30px; height: 45px; object-fit: cover;">
+                        {% else %}
+                            <div class="me-2 d-flex align-items-center justify-content-center bg-light rounded" style="width: 30px; height: 45px; font-size: 12px;">
+                                <i class="bi bi-camera-video text-muted"></i>
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="text-decoration-none fw-bold">
+                                {{ dvd.name }}
+                            </a>
+                            {% if dvd.release_year %}
+                                <small class="text-muted d-block">{{ dvd.release_year }}</small>
+                            {% endif %}
+                        </div>
+                        <span class="badge bg-{{ dvd.get_status_display_class }}">{{ dvd.get_status_display }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Year Range -->
+{% if year_stats.year_count > 0 %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Collection Timeline</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stat-number">{{ year_stats.earliest_year }}</div>
+                        <small class="text-muted">Earliest Movie</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-number">{{ year_stats.latest_year }}</div>
+                        <small class="text-muted">Latest Movie</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-number">{{ year_stats.year_span }}</div>
+                        <small class="text-muted">Year Span</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.stats-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results - Add DVD{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="bi bi-search"></i> Search Results for "{{ query }}"</h1>
+        <p class="text-muted mb-4">Click on a movie to add it to your collection.</p>
+        
+        {% if search_results %}
+            <div class="row">
+                {% for movie in search_results %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card tmdb-result h-100" onclick="location.href='{% url 'tracker:dvd_add_from_tmdb' movie.id %}'">
+                            <div class="poster-container">
+                                {% if movie.poster_url %}
+                                    <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="poster-img">
+                                {% else %}
+                                    <div class="no-poster">
+                                        <i class="bi bi-camera-video display-4"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="card-body">
+                                <h6 class="card-title">{{ movie.title }}</h6>
+                                
+                                {% if movie.release_date %}
+                                    <small class="text-muted">{{ movie.release_date|slice:":4" }}</small>
+                                {% endif %}
+                                
+                                {% if movie.overview %}
+                                    <p class="card-text text-muted small mt-2">
+                                        {{ movie.overview|truncatewords:15 }}
+                                    </p>
+                                {% endif %}
+                                
+                                <div class="mt-auto pt-2">
+                                    <div class="d-grid">
+                                        <small class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-plus-circle"></i> Add to Collection
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-search display-1 text-muted"></i>
+                <h3 class="mt-3">No Results Found</h3>
+                <p class="text-muted">Try a different search term or add the movie manually.</p>
+            </div>
+        {% endif %}
+        
+        <!-- Search Again -->
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Search Again</h6>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8">
+                                {{ search_form.query }}
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" name="search" class="btn btn-primary w-100">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'tracker:dvd_add' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Add DVD
+            </a>
+            <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-collection"></i> Back to Collection
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

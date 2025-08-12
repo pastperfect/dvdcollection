@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}My DVD Collection{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-collection-play"></i> My DVD Collection</h1>
+        <p class="text-muted mb-0">
+            {% if total_count %}
+                {{ total_count }} movie{{ total_count|pluralize }} in your collection
+            {% else %}
+                Your collection is empty
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'tracker:dvd_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New DVD
+        </a>
+        <div class="btn-group ms-2" role="group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-funnel"></i> View Collections
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'tracker:tartan_dvds' %}">
+                    <i class="bi bi-star text-purple"></i> Tartan DVDs
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'tracker:box_sets' %}">
+                    <i class="bi bi-boxes text-info"></i> Box Sets
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="filter-form">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label for="{{ filter_form.search.id_for_label }}" class="form-label">Search</label>
+            {{ filter_form.search }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.status.id_for_label }}" class="form-label">Status</label>
+            {{ filter_form.status }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.media_type.id_for_label }}" class="form-label">Media Type</label>
+            {{ filter_form.media_type }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.is_tartan_dvd.id_for_label }}" class="form-label">Tartan</label>
+            {{ filter_form.is_tartan_dvd }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.is_box_set.id_for_label }}" class="form-label">Box Set</label>
+            {{ filter_form.is_box_set }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.is_unopened.id_for_label }}" class="form-label">Condition</label>
+            {{ filter_form.is_unopened }}
+        </div>
+        <div class="col-md-2">
+            <label for="{{ filter_form.is_unwatched.id_for_label }}" class="form-label">Watch Status</label>
+            {{ filter_form.is_unwatched }}
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+            <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Results Summary -->
+<div class="mb-3 mt-4">
+    <p class="text-muted">
+        Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ total_count }} DVD{{ total_count|pluralize }}
+    </p>
+</div>
+
+<!-- DVD Grid -->
+{% if page_obj %}
+    <div class="row">
+        {% for dvd in page_obj %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card dvd-card h-100">
+                    <div class="poster-container">
+                        {% if dvd.poster_url %}
+                            <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="poster-img">
+                        {% else %}
+                            <div class="no-poster">
+                                <i class="bi bi-camera-video display-4"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Status Badge -->
+                        <span class="badge bg-{{ dvd.get_status_display_class }} status-badge">
+                            {{ dvd.get_status_display }}
+                        </span>
+                        
+                        <!-- Media Type Badge -->
+                        <span class="badge bg-{{ dvd.get_media_type_display_class }} media-type-badge">
+                            {{ dvd.get_media_type_display }}
+                        </span>
+                        
+                        <!-- Special Feature Badges -->
+                        {% for badge in dvd.get_special_features_badges %}
+                            <span class="badge {{ badge.class }} special-badge">{{ badge.text }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title">{{ dvd.name }}</h6>
+                        
+                        <div class="text-muted small mb-2">
+                            {% if dvd.release_year %}
+                                <i class="bi bi-calendar"></i> {{ dvd.release_year }}
+                            {% endif %}
+                            {% if dvd.runtime %}
+                                {% if dvd.release_year %} • {% endif %}
+                                <i class="bi bi-clock"></i> {{ dvd.runtime }}min
+                            {% endif %}
+                            {% if dvd.rating %}
+                                {% if dvd.release_year or dvd.runtime %} • {% endif %}
+                                <i class="bi bi-star-fill text-warning"></i> {{ dvd.rating }}
+                            {% endif %}
+                        </div>
+                        
+                        {% if dvd.genres %}
+                            <div class="mb-2">
+                                {% for genre in dvd.get_genres_list|slice:":2" %}
+                                    <span class="badge bg-light text-dark me-1 small">{{ genre }}</span>
+                                {% endfor %}
+                                {% if dvd.get_genres_list|length > 2 %}
+                                    <span class="text-muted small">+{{ dvd.get_genres_list|length|add:"-2" }} more</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if dvd.overview %}
+                            <p class="card-text text-muted small">{{ dvd.overview|truncatewords:20 }}</p>
+                        {% endif %}
+                        
+                        <div class="mt-auto">
+                            <div class="btn-group w-100" role="group">
+                                <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                <a href="{% url 'tracker:dvd_edit' dvd.pk %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% if dvd.tmdb_id %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'tracker:fix_tmdb_match' dvd.pk %}">
+                                                <i class="bi bi-wrench"></i> Fix TMDB Match
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% endif %}
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'tracker:dvd_delete' dvd.pk %}">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Previous
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Next
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="bi bi-collection-play display-1 text-muted"></i>
+        <h3 class="mt-3">No DVDs Found</h3>
+        {% if request.GET.search or request.GET.status or request.GET.media_type %}
+            <p class="text-muted">Try adjusting your filters or <a href="{% url 'tracker:dvd_list' %}">clear all filters</a>.</p>
+        {% else %}
+            <p class="text-muted">Start building your collection by adding your first DVD!</p>
+            <a href="{% url 'tracker:dvd_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Your First DVD
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

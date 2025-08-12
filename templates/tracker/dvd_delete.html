@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete {{ dvd.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirm Deletion</h5>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete <strong>"{{ dvd.name }}"</strong> from your collection?</p>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i> This action cannot be undone.
+                </div>
+                
+                <!-- DVD Info -->
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        {% if dvd.poster_url %}
+                            <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="img-fluid rounded mb-3" style="max-height: 200px;">
+                        {% endif %}
+                        <h6>{{ dvd.name }}</h6>
+                        {% if dvd.release_year %}
+                            <small class="text-muted">{{ dvd.release_year }}</small>
+                        {% endif %}
+                        <div class="mt-2">
+                            <span class="badge bg-{{ dvd.get_status_display_class }} me-2">
+                                {{ dvd.get_status_display }}
+                            </span>
+                            <span class="badge bg-{{ dvd.get_media_type_display_class }}">
+                                {{ dvd.get_media_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Yes, Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

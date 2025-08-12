@@ -1,0 +1,434 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ dvd.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1><i class="bi bi-pencil"></i> Edit DVD</h1>
+        <h2 class="text-primary">{{ dvd.name }}</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Movie Title</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="text-danger">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.media_type.id_for_label }}" class="form-label">Media Type</label>
+                            {{ form.media_type }}
+                            {% if form.media_type.errors %}
+                                <div class="text-danger">{{ form.media_type.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.overview.id_for_label }}" class="form-label">Overview</label>
+                        {{ form.overview }}
+                        {% if form.overview.errors %}
+                            <div class="text-danger">{{ form.overview.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.imdb_id.id_for_label }}" class="form-label">IMDB ID</label>
+                        {{ form.imdb_id }}
+                        {% if form.imdb_id.errors %}
+                            <div class="text-danger">{{ form.imdb_id.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Enter IMDB ID in format: tt1234567</div>
+                    </div>
+                    
+                    <!-- DVD Specific Fields -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-disc"></i> DVD Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-3">
+                                        {{ form.is_tartan_dvd }}
+                                        <label class="form-check-label" for="{{ form.is_tartan_dvd.id_for_label }}">
+                                            Tartan DVD Release
+                                        </label>
+                                        {% if form.is_tartan_dvd.errors %}
+                                            <div class="text-danger">{{ form.is_tartan_dvd.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.is_box_set }}
+                                        <label class="form-check-label" for="{{ form.is_box_set.id_for_label }}">
+                                            Part of Box Set
+                                        </label>
+                                        {% if form.is_box_set.errors %}
+                                            <div class="text-danger">{{ form.is_box_set.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-check mb-3">
+                                        {{ form.is_unopened }}
+                                        <label class="form-check-label" for="{{ form.is_unopened.id_for_label }}">
+                                            Still Unopened
+                                        </label>
+                                        {% if form.is_unopened.errors %}
+                                            <div class="text-danger">{{ form.is_unopened.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.is_unwatched }}
+                                        <label class="form-check-label" for="{{ form.is_unwatched.id_for_label }}">
+                                            Unwatched
+                                        </label>
+                                        {% if form.is_unwatched.errors %}
+                                            <div class="text-danger">{{ form.is_unwatched.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3" id="box-set-name-container" style="display: none;">
+                                <label for="{{ form.box_set_name.id_for_label }}" class="form-label">Box Set Name</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" 
+                                           id="id_box_set_name" 
+                                           name="box_set_name" 
+                                           class="form-control" 
+                                           placeholder="Enter box set name..." 
+                                           value="{{ form.box_set_name.value|default:'' }}"
+                                           autocomplete="off">
+                                    <div id="edit-box-set-autocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                                {% if form.box_set_name.errors %}
+                                    <div class="text-danger">{{ form.box_set_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3" id="storage-box-container" style="display: none;">
+                                <label for="{{ form.storage_box.id_for_label }}" class="form-label">Storage Box</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" 
+                                           id="id_storage_box" 
+                                           name="storage_box" 
+                                           class="form-control" 
+                                           placeholder="Enter storage box location..." 
+                                           value="{{ form.storage_box.value|default:'' }}"
+                                           autocomplete="off">
+                                    <div id="edit-storage-box-autocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                                {% if form.storage_box.errors %}
+                                    <div class="text-danger">{{ form.storage_box.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Current TMDB Info (if available) -->
+        {% if dvd.tmdb_id %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> TMDB Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if dvd.release_year %}
+                            <div class="col-sm-6 mb-2">
+                                <strong>Release Year:</strong> {{ dvd.release_year }}
+                            </div>
+                        {% endif %}
+                        {% if dvd.runtime %}
+                            <div class="col-sm-6 mb-2">
+                                <strong>Runtime:</strong> {{ dvd.runtime }} minutes
+                            </div>
+                        {% endif %}
+                        {% if dvd.rating %}
+                            <div class="col-sm-6 mb-2">
+                                <strong>Rating:</strong> {{ dvd.rating }}/10
+                            </div>
+                        {% endif %}
+                        {% if dvd.genres %}
+                            <div class="col-12 mb-2">
+                                <strong>Genres:</strong> {{ dvd.genres }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        This information was automatically fetched from TMDB and cannot be edited here.
+                    </small>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const boxSetCheckbox = document.getElementById('id_is_box_set');
+    const boxSetNameContainer = document.getElementById('box-set-name-container');
+    const boxSetNameInput = document.getElementById('id_box_set_name');
+    const autocompleteDropdown = document.getElementById('edit-box-set-autocomplete');
+    
+    const statusSelect = document.getElementById('id_status');
+    const storageBoxContainer = document.getElementById('storage-box-container');
+    const storageBoxInput = document.getElementById('id_storage_box');
+    const storageBoxAutocompleteDropdown = document.getElementById('edit-storage-box-autocomplete');
+    
+    let debounceTimer;
+    let currentFocus = -1;
+    let storageBoxDebounceTimer;
+    let storageBoxCurrentFocus = -1;
+    
+    function toggleBoxSetName() {
+        if (boxSetCheckbox.checked) {
+            boxSetNameContainer.style.display = 'block';
+            boxSetNameInput.focus();
+        } else {
+            boxSetNameContainer.style.display = 'none';
+            boxSetNameInput.value = '';
+            hideAutocomplete();
+        }
+    }
+    
+    function hideAutocomplete() {
+        if (autocompleteDropdown) {
+            autocompleteDropdown.style.display = 'none';
+            autocompleteDropdown.innerHTML = '';
+            currentFocus = -1;
+        }
+    }
+    
+    function showAutocomplete(suggestions) {
+        if (!autocompleteDropdown) return;
+        
+        autocompleteDropdown.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+        
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = suggestion;
+            item.addEventListener('click', function() {
+                boxSetNameInput.value = suggestion;
+                hideAutocomplete();
+            });
+            autocompleteDropdown.appendChild(item);
+        });
+        
+        autocompleteDropdown.style.display = 'block';
+    }
+    
+    function fetchSuggestions(query) {
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+        
+        fetch(`{% url 'tracker:box_set_autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                showAutocomplete(data.suggestions || []);
+            })
+            .catch(error => {
+                console.error('Error fetching suggestions:', error);
+                hideAutocomplete();
+            });
+    }
+    
+    function setActiveItem(items) {
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === currentFocus);
+        });
+    }
+    
+    function toggleStorageBox() {
+        if (statusSelect && storageBoxContainer && storageBoxInput) {
+            if (statusSelect.value === 'kept') {
+                storageBoxContainer.style.display = 'block';
+            } else {
+                storageBoxContainer.style.display = 'none';
+                storageBoxInput.value = '';
+                hideStorageBoxAutocomplete();
+            }
+        }
+    }
+    
+    function hideStorageBoxAutocomplete() {
+        if (storageBoxAutocompleteDropdown) {
+            storageBoxAutocompleteDropdown.style.display = 'none';
+            storageBoxAutocompleteDropdown.innerHTML = '';
+            storageBoxCurrentFocus = -1;
+        }
+    }
+    
+    function showStorageBoxAutocomplete(suggestions) {
+        if (!storageBoxAutocompleteDropdown) return;
+        
+        storageBoxAutocompleteDropdown.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            storageBoxAutocompleteDropdown.style.display = 'none';
+            return;
+        }
+        
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = suggestion;
+            item.addEventListener('click', function() {
+                storageBoxInput.value = suggestion;
+                hideStorageBoxAutocomplete();
+            });
+            storageBoxAutocompleteDropdown.appendChild(item);
+        });
+        
+        storageBoxAutocompleteDropdown.style.display = 'block';
+    }
+    
+    function fetchStorageBoxSuggestions(query) {
+        if (query.length < 1) {
+            hideStorageBoxAutocomplete();
+            return;
+        }
+        
+        fetch(`{% url 'tracker:storage_box_autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                showStorageBoxAutocomplete(data.suggestions || []);
+            })
+            .catch(error => {
+                console.error('Error fetching storage box suggestions:', error);
+                hideStorageBoxAutocomplete();
+            });
+    }
+    
+    function setStorageBoxActiveItem(items) {
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === storageBoxCurrentFocus);
+        });
+    }
+    
+    // Set up event listeners
+    boxSetCheckbox.addEventListener('change', toggleBoxSetName);
+    if (statusSelect) {
+        statusSelect.addEventListener('change', toggleStorageBox);
+    }
+    
+    // Check initial state when page loads
+    toggleBoxSetName(); // This will handle both showing/hiding based on checkbox state
+    toggleStorageBox(); // Check storage box visibility based on status
+    
+    if (boxSetNameInput) {
+        boxSetNameInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(this.value.trim());
+            }, 300);
+        });
+        
+        boxSetNameInput.addEventListener('keydown', function(e) {
+            const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentFocus = currentFocus < items.length - 1 ? currentFocus + 1 : 0;
+                setActiveItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentFocus = currentFocus > 0 ? currentFocus - 1 : items.length - 1;
+                setActiveItem(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentFocus >= 0 && items[currentFocus]) {
+                    items[currentFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                hideAutocomplete();
+            }
+        });
+        
+        boxSetNameInput.addEventListener('blur', function() {
+            setTimeout(hideAutocomplete, 150);
+        });
+    }
+    
+    if (storageBoxInput) {
+        storageBoxInput.addEventListener('input', function() {
+            clearTimeout(storageBoxDebounceTimer);
+            storageBoxDebounceTimer = setTimeout(() => {
+                fetchStorageBoxSuggestions(this.value.trim());
+            }, 300);
+        });
+        
+        storageBoxInput.addEventListener('keydown', function(e) {
+            const items = storageBoxAutocompleteDropdown.querySelectorAll('.autocomplete-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                storageBoxCurrentFocus = storageBoxCurrentFocus < items.length - 1 ? storageBoxCurrentFocus + 1 : 0;
+                setStorageBoxActiveItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                storageBoxCurrentFocus = storageBoxCurrentFocus > 0 ? storageBoxCurrentFocus - 1 : items.length - 1;
+                setStorageBoxActiveItem(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (storageBoxCurrentFocus >= 0 && items[storageBoxCurrentFocus]) {
+                    items[storageBoxCurrentFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                hideStorageBoxAutocomplete();
+            }
+        });
+        
+        storageBoxInput.addEventListener('blur', function() {
+            setTimeout(hideStorageBoxAutocomplete, 150);
+        });
+    }
+    
+    // Hide autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.autocomplete-container')) {
+            hideAutocomplete();
+            hideStorageBoxAutocomplete();
+        }
+    });
+});
+</script>
+{% endblock %}

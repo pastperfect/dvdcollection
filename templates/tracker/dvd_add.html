@@ -1,0 +1,560 @@
+{% extends 'base.html' %}
+
+{% block title %}Add New DVD{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1><i class="bi bi-plus-circle"></i> Add New DVD</h1>
+        <p class="text-muted mb-4">Search for a movie to automatically fetch details from The Movie Database.</p>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_query" class="form-label">Search for a Movie</label>
+                        {{ search_form.query }}
+                        <div class="form-text">Enter the movie title to search TMDB database</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="search" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Search TMDB
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted">Or</p>
+            <a href="#" class="btn btn-outline-secondary" onclick="showManualForm()">
+                <i class="bi bi-pencil"></i> Add Manually
+            </a>
+        </div>
+        
+        <!-- Manual Entry Form (Initially Hidden) -->
+        <div id="manualForm" class="card mt-4" style="display: none;">
+            <div class="card-header">
+                <h6 class="mb-0">Manual Entry</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'tracker:dvd_add' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="manual_name" class="form-label">Movie Title</label>
+                        <input type="text" class="form-control" id="manual_name" name="name" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="manual_status" class="form-label">Status</label>
+                            <select class="form-select" id="manual_status" name="status" onchange="toggleStorageBox()">
+                                <option value="kept">Kept</option>
+                                <option value="disposed">Disposed</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="manual_media_type" class="form-label">Media Type</label>
+                            <select class="form-select" id="manual_media_type" name="media_type">
+                                <option value="physical">Physical</option>
+                                <option value="download">Download</option>
+                                <option value="rip">Rip</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="manual_overview" class="form-label">Overview</label>
+                        <textarea class="form-control" id="manual_overview" name="overview" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="manual_imdb_id" class="form-label">IMDB ID (Optional)</label>
+                        <input type="text" class="form-control" id="manual_imdb_id" name="imdb_id" placeholder="tt1234567" pattern="tt[0-9]+">
+                        <div class="form-text">Enter IMDB ID in format: tt1234567</div>
+                    </div>
+                    
+                    <!-- DVD Specific Fields -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-disc"></i> DVD Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="manual_is_tartan_dvd" name="is_tartan_dvd">
+                                        <label class="form-check-label" for="manual_is_tartan_dvd">
+                                            Tartan DVD Release
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="manual_is_box_set" name="is_box_set" onchange="toggleBoxSetName()">
+                                        <label class="form-check-label" for="manual_is_box_set">
+                                            Part of Box Set
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="manual_is_unopened" name="is_unopened">
+                                        <label class="form-check-label" for="manual_is_unopened">
+                                            Still Unopened
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="manual_is_unwatched" name="is_unwatched">
+                                        <label class="form-check-label" for="manual_is_unwatched">
+                                            Unwatched
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3" id="manual-box-set-name-container" style="display: none;">
+                                <label for="manual_box_set_name" class="form-label">Box Set Name</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" 
+                                           id="manual_box_set_name" 
+                                           name="box_set_name" 
+                                           class="form-control" 
+                                           placeholder="Enter box set name..."
+                                           autocomplete="off">
+                                    <div id="manual-box-set-autocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3" id="manual-storage-box-container" style="display: none;">
+                                <label for="manual_storage_box" class="form-label">Storage Box</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" 
+                                           id="manual_storage_box" 
+                                           name="storage_box" 
+                                           class="form-control" 
+                                           placeholder="Enter storage box location..."
+                                           autocomplete="off">
+                                    <div id="manual-storage-box-autocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pricing Information -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-currency-pound"></i> Pricing Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="manual_purchase_price" class="form-label">Purchase Price (£)</label>
+                                    <input type="number" 
+                                           id="manual_purchase_price" 
+                                           name="purchase_price" 
+                                           class="form-control" 
+                                           placeholder="0.00" 
+                                           step="0.01" 
+                                           min="0">
+                                    <div class="form-text">How much did you pay for this DVD?</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="manual_estimated_price" class="form-label">Estimated Value (£)</label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               id="manual_estimated_price" 
+                                               name="estimated_price" 
+                                               class="form-control" 
+                                               placeholder="0.00" 
+                                               step="0.01" 
+                                               min="0"
+                                               readonly>
+                                        <button type="button" class="btn btn-outline-primary" id="manual-fetch-price-btn">
+                                            <i class="bi bi-link-45deg"></i> Get Price Links
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Estimated current market value</div>
+                                    <div id="manual-price-estimate-result" class="mt-2" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Add to Collection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Collection
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showManualForm() {
+    document.getElementById('manualForm').style.display = 'block';
+    document.getElementById('manual_name').focus();
+    toggleStorageBox(); // Check initial state
+}
+
+function toggleBoxSetName() {
+    const boxSetCheckbox = document.getElementById('manual_is_box_set');
+    const boxSetNameContainer = document.getElementById('manual-box-set-name-container');
+    const boxSetNameInput = document.getElementById('manual_box_set_name');
+    const autocompleteDropdown = document.getElementById('manual-box-set-autocomplete');
+    
+    if (boxSetCheckbox && boxSetNameContainer && boxSetNameInput) {
+        if (boxSetCheckbox.checked) {
+            boxSetNameContainer.style.display = 'block';
+            boxSetNameInput.focus();
+        } else {
+            boxSetNameContainer.style.display = 'none';
+            boxSetNameInput.value = '';
+            if (autocompleteDropdown) {
+                autocompleteDropdown.style.display = 'none';
+            }
+        }
+    }
+}
+
+function toggleStorageBox() {
+    const statusSelect = document.getElementById('manual_status');
+    const storageBoxContainer = document.getElementById('manual-storage-box-container');
+    const storageBoxInput = document.getElementById('manual_storage_box');
+    const autocompleteDropdown = document.getElementById('manual-storage-box-autocomplete');
+    
+    if (statusSelect && storageBoxContainer && storageBoxInput) {
+        if (statusSelect.value === 'kept') {
+            storageBoxContainer.style.display = 'block';
+        } else {
+            storageBoxContainer.style.display = 'none';
+            storageBoxInput.value = '';
+            if (autocompleteDropdown) {
+                autocompleteDropdown.style.display = 'none';
+            }
+        }
+    }
+}
+
+// Autocomplete functionality for manual form
+document.addEventListener('DOMContentLoaded', function() {
+    const boxSetNameInput = document.getElementById('manual_box_set_name');
+    const autocompleteDropdown = document.getElementById('manual-box-set-autocomplete');
+    
+    let debounceTimer;
+    let currentFocus = -1;
+    
+    function hideAutocomplete() {
+        if (autocompleteDropdown) {
+            autocompleteDropdown.style.display = 'none';
+            autocompleteDropdown.innerHTML = '';
+            currentFocus = -1;
+        }
+    }
+    
+    function showAutocomplete(suggestions) {
+        if (!autocompleteDropdown) return;
+        
+        autocompleteDropdown.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+        
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = suggestion;
+            item.addEventListener('click', function() {
+                boxSetNameInput.value = suggestion;
+                hideAutocomplete();
+            });
+            autocompleteDropdown.appendChild(item);
+        });
+        
+        autocompleteDropdown.style.display = 'block';
+    }
+    
+    function fetchSuggestions(query) {
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+        
+        fetch(`{% url 'tracker:box_set_autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                showAutocomplete(data.suggestions || []);
+            })
+            .catch(error => {
+                console.error('Error fetching suggestions:', error);
+                hideAutocomplete();
+            });
+    }
+    
+    if (boxSetNameInput) {
+        boxSetNameInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(this.value.trim());
+            }, 300);
+        });
+        
+        boxSetNameInput.addEventListener('keydown', function(e) {
+            const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentFocus = currentFocus < items.length - 1 ? currentFocus + 1 : 0;
+                setActiveItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentFocus = currentFocus > 0 ? currentFocus - 1 : items.length - 1;
+                setActiveItem(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentFocus >= 0 && items[currentFocus]) {
+                    items[currentFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                hideAutocomplete();
+            }
+        });
+        
+        boxSetNameInput.addEventListener('blur', function() {
+            setTimeout(hideAutocomplete, 150);
+        });
+    }
+    
+    function setActiveItem(items) {
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === currentFocus);
+        });
+    }
+    
+    // Hide autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.autocomplete-container')) {
+            hideAutocomplete();
+            hideStorageBoxAutocomplete();
+        }
+    });
+    
+    // Storage Box Autocomplete functionality
+    const storageBoxInput = document.getElementById('manual_storage_box');
+    const storageBoxAutocompleteDropdown = document.getElementById('manual-storage-box-autocomplete');
+    
+    let storageBoxDebounceTimer;
+    let storageBoxCurrentFocus = -1;
+    
+    function hideStorageBoxAutocomplete() {
+        if (storageBoxAutocompleteDropdown) {
+            storageBoxAutocompleteDropdown.style.display = 'none';
+            storageBoxAutocompleteDropdown.innerHTML = '';
+            storageBoxCurrentFocus = -1;
+        }
+    }
+    
+    function showStorageBoxAutocomplete(suggestions) {
+        if (!storageBoxAutocompleteDropdown) return;
+        
+        storageBoxAutocompleteDropdown.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            storageBoxAutocompleteDropdown.style.display = 'none';
+            return;
+        }
+        
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = suggestion;
+            item.addEventListener('click', function() {
+                storageBoxInput.value = suggestion;
+                hideStorageBoxAutocomplete();
+            });
+            storageBoxAutocompleteDropdown.appendChild(item);
+        });
+        
+        storageBoxAutocompleteDropdown.style.display = 'block';
+    }
+    
+    function fetchStorageBoxSuggestions(query) {
+        if (query.length < 1) {
+            hideStorageBoxAutocomplete();
+            return;
+        }
+        
+        fetch(`{% url 'tracker:storage_box_autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                showStorageBoxAutocomplete(data.suggestions || []);
+            })
+            .catch(error => {
+                console.error('Error fetching storage box suggestions:', error);
+                hideStorageBoxAutocomplete();
+            });
+    }
+    
+    if (storageBoxInput) {
+        storageBoxInput.addEventListener('input', function() {
+            clearTimeout(storageBoxDebounceTimer);
+            storageBoxDebounceTimer = setTimeout(() => {
+                fetchStorageBoxSuggestions(this.value.trim());
+            }, 300);
+        });
+        
+        storageBoxInput.addEventListener('keydown', function(e) {
+            const items = storageBoxAutocompleteDropdown.querySelectorAll('.autocomplete-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                storageBoxCurrentFocus = storageBoxCurrentFocus < items.length - 1 ? storageBoxCurrentFocus + 1 : 0;
+                setStorageBoxActiveItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                storageBoxCurrentFocus = storageBoxCurrentFocus > 0 ? storageBoxCurrentFocus - 1 : items.length - 1;
+                setStorageBoxActiveItem(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (storageBoxCurrentFocus >= 0 && items[storageBoxCurrentFocus]) {
+                    items[storageBoxCurrentFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                hideStorageBoxAutocomplete();
+            }
+        });
+        
+        storageBoxInput.addEventListener('blur', function() {
+            setTimeout(hideStorageBoxAutocomplete, 150);
+        });
+    }
+    
+    function setStorageBoxActiveItem(items) {
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === storageBoxCurrentFocus);
+        });
+    }
+    
+    // Add event listener for manual price estimation button
+    const manualPriceBtn = document.getElementById('manual-fetch-price-btn');
+    if (manualPriceBtn) {
+        manualPriceBtn.addEventListener('click', fetchManualPriceEstimate);
+    }
+});
+
+// Price estimation function for manual form
+function fetchManualPriceEstimate() {
+    const movieName = document.getElementById('manual_name').value;
+    const estimatedPriceInput = document.getElementById('manual_estimated_price');
+    const fetchBtn = document.getElementById('manual-fetch-price-btn');
+    const resultDiv = document.getElementById('manual-price-estimate-result');
+    
+    if (!movieName) {
+        alert('Please enter a movie title first.');
+        return;
+    }
+    
+    // Show loading state
+    fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Fetching...';
+    fetchBtn.disabled = true;
+    
+    fetch('{% url "tracker:fetch_price_estimate" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            movie_name: movieName,
+            release_year: null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Automated price found
+            estimatedPriceInput.value = data.estimated_price;
+            let successHtml = `
+                <div class="alert alert-success">
+                    <strong>Price estimate:</strong> £${data.estimated_price}<br>
+                    <small>Source: ${data.price_source}</small>
+            `;
+            
+            // Add Amazon URL if available
+            if (data.amazon_url) {
+                successHtml += `<br><small><a href="${data.amazon_url}" target="_blank" class="text-decoration-none">View on Amazon</a></small>`;
+            }
+            
+            // Add CamelCamelCamel URL if available
+            if (data.camel_url) {
+                successHtml += `<br><small><a href="${data.camel_url}" target="_blank" class="text-decoration-none">View price history on CamelCamelCamel</a></small>`;
+            }
+            
+            // Add individual prices if available
+            if (data.individual_prices && data.individual_prices.length > 1) {
+                successHtml += `<br><small>Individual prices: £${data.individual_prices.join(', £')}</small>`;
+            }
+            
+            // Add sources checked
+            if (data.sources_checked && data.sources_checked.length > 0) {
+                successHtml += `<br><small>Sources checked: ${data.sources_checked.join(', ')}</small>`;
+            }
+            
+            successHtml += `</div>`;
+            resultDiv.innerHTML = successHtml;
+            resultDiv.style.display = 'block';
+        } else {
+            // Show manual sources if automated pricing failed
+            resultDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Automated pricing failed.</strong> Check these sources for current pricing:
+                    ${data.sources_checked && data.sources_checked.length > 0 ? 
+                        `<br><small>Attempted: ${data.sources_checked.join(', ')}</small>` : ''
+                    }
+                    <ul class="mt-2 mb-0">
+                        ${data.manual_sources.map(source => 
+                            `<li><a href="${source.url}" target="_blank" class="text-decoration-none">${source.name}</a></li>`
+                        ).join('')}
+                    </ul>
+                    <small class="text-muted mt-2 d-block">Enter the price manually after checking these sources.</small>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+            `;
+            resultDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                Error fetching price estimate. Please try again.
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+    })
+    .finally(() => {
+        fetchBtn.innerHTML = '<i class="bi bi-link-45deg"></i> Get Price Links';
+        fetchBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

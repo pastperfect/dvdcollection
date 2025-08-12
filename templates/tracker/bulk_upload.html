@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk Upload Movies{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-upload"></i> Bulk Upload Movies</h1>
+                <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Collection
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Upload Multiple Movies</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>How it works:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Enter one movie title per line in the text area below</li>
+                            <li>We'll automatically search TMDB for each movie</li>
+                            <li>The first matching result will be added to your collection</li>
+                            <li>You can set default options for all movies (status, media type, DVD details)</li>
+                            <li>All DVD-specific options will be applied to every uploaded movie</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" id="bulkUploadForm">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.default_status.id_for_label }}" class="form-label">Default Status</label>
+                                {{ form.default_status }}
+                                <div class="form-text">{{ form.default_status.help_text }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.default_media_type.id_for_label }}" class="form-label">Default Media Type</label>
+                                {{ form.default_media_type }}
+                                <div class="form-text">{{ form.default_media_type.help_text }}</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.skip_existing }}
+                                <label class="form-check-label" for="{{ form.skip_existing.id_for_label }}">
+                                    Skip movies already in collection
+                                </label>
+                                <div class="form-text">{{ form.skip_existing.help_text }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- DVD Specific Options -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-disc"></i> DVD Details (Applied to All Movies)</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            {{ form.default_is_tartan_dvd }}
+                                            <label class="form-check-label" for="{{ form.default_is_tartan_dvd.id_for_label }}">
+                                                Tartan DVD Release
+                                            </label>
+                                            <div class="form-text">{{ form.default_is_tartan_dvd.help_text }}</div>
+                                        </div>
+                                        
+                                        <div class="form-check mb-3">
+                                            {{ form.default_is_box_set }}
+                                            <label class="form-check-label" for="{{ form.default_is_box_set.id_for_label }}">
+                                                Part of Box Set
+                                            </label>
+                                            <div class="form-text">{{ form.default_is_box_set.help_text }}</div>
+                                        </div>
+                                        
+                                        <div class="mb-3" id="box-set-name-container" style="display: none;">
+                                            <label for="{{ form.default_box_set_name.id_for_label }}" class="form-label">Box Set Name</label>
+                                            {{ form.default_box_set_name }}
+                                            <div class="form-text">{{ form.default_box_set_name.help_text }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            {{ form.default_is_unopened }}
+                                            <label class="form-check-label" for="{{ form.default_is_unopened.id_for_label }}">
+                                                Still Unopened
+                                            </label>
+                                            <div class="form-text">{{ form.default_is_unopened.help_text }}</div>
+                                        </div>
+                                        
+                                        <div class="form-check mb-3">
+                                            {{ form.default_is_unwatched }}
+                                            <label class="form-check-label" for="{{ form.default_is_unwatched.id_for_label }}">
+                                                Unwatched
+                                            </label>
+                                            <div class="form-text">{{ form.default_is_unwatched.help_text }}</div>
+                                        </div>
+                                        
+                                        <div class="mb-3" id="storage-box-container" style="display: none;">
+                                            <label for="{{ form.default_storage_box.id_for_label }}" class="form-label">Storage Box</label>
+                                            {{ form.default_storage_box }}
+                                            <div class="form-text">{{ form.default_storage_box.help_text }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.movie_list.id_for_label }}" class="form-label">Movie Titles</label>
+                            {{ form.movie_list }}
+                            <div class="form-text">{{ form.movie_list.help_text }}</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                <i class="bi bi-upload"></i> Start Bulk Upload
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sample titles section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Quick Examples</h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text text-muted">Click any example below to populate the movie list:</p>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSampleList('action')">
+                                Action Movies
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSampleList('scifi')">
+                                Sci-Fi Classics
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSampleList('comedy')">
+                                Comedy Hits
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Sample movie lists
+const sampleLists = {
+    action: [
+        'The Matrix',
+        'John Wick',
+        'Mad Max: Fury Road',
+        'Die Hard',
+        'Terminator 2: Judgment Day',
+        'The Dark Knight',
+        'Gladiator',
+        'Heat'
+    ],
+    scifi: [
+        'Blade Runner 2049',
+        'Interstellar',
+        'The Martian',
+        'Arrival',
+        'Ex Machina',
+        'Gravity',
+        'Dune',
+        'Alien'
+    ],
+    comedy: [
+        'The Grand Budapest Hotel',
+        'Superbad',
+        'Anchorman',
+        'The Hangover',
+        'Groundhog Day',
+        'Borat',
+        'Zoolander',
+        'Tropic Thunder'
+    ]
+};
+
+function loadSampleList(type) {
+    const textarea = document.getElementById('{{ form.movie_list.id_for_label }}');
+    const movies = sampleLists[type];
+    textarea.value = movies.join('\n');
+}
+
+// Toggle box set name field based on checkbox
+function toggleBoxSetName() {
+    const boxSetCheckbox = document.getElementById('{{ form.default_is_box_set.id_for_label }}');
+    const boxSetNameContainer = document.getElementById('box-set-name-container');
+    
+    if (boxSetCheckbox && boxSetNameContainer) {
+        if (boxSetCheckbox.checked) {
+            boxSetNameContainer.style.display = 'block';
+        } else {
+            boxSetNameContainer.style.display = 'none';
+            const boxSetNameInput = document.getElementById('{{ form.default_box_set_name.id_for_label }}');
+            if (boxSetNameInput) {
+                boxSetNameInput.value = '';
+            }
+        }
+    }
+}
+
+// Toggle storage box field based on status
+function toggleStorageBox() {
+    const statusSelect = document.getElementById('{{ form.default_status.id_for_label }}');
+    const storageBoxContainer = document.getElementById('storage-box-container');
+    
+    if (statusSelect && storageBoxContainer) {
+        if (statusSelect.value === 'kept') {
+            storageBoxContainer.style.display = 'block';
+        } else {
+            storageBoxContainer.style.display = 'none';
+            const storageBoxInput = document.getElementById('{{ form.default_storage_box.id_for_label }}');
+            if (storageBoxInput) {
+                storageBoxInput.value = '';
+            }
+        }
+    }
+}
+
+// Initialize event handlers when DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Box set checkbox handler
+    const boxSetCheckbox = document.getElementById('{{ form.default_is_box_set.id_for_label }}');
+    if (boxSetCheckbox) {
+        boxSetCheckbox.addEventListener('change', toggleBoxSetName);
+        toggleBoxSetName(); // Set initial state
+    }
+    
+    // Status select handler
+    const statusSelect = document.getElementById('{{ form.default_status.id_for_label }}');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', toggleStorageBox);
+        toggleStorageBox(); // Set initial state
+    }
+});
+
+// Form submission handling
+document.getElementById('bulkUploadForm').addEventListener('submit', function(e) {
+    const btn = document.getElementById('uploadBtn');
+    const movieList = document.getElementById('{{ form.movie_list.id_for_label }}').value.trim();
+    
+    if (!movieList) {
+        e.preventDefault();
+        alert('Please enter at least one movie title.');
+        return;
+    }
+    
+    const movieCount = movieList.split('\n').filter(line => line.trim()).length;
+    
+    if (!confirm(`This will process ${movieCount} movies. This may take a few minutes. Continue?`)) {
+        e.preventDefault();
+        return;
+    }
+    
+    // Show loading state
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}
