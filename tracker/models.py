@@ -36,6 +36,7 @@ class DVD(models.Model):
     genres = models.CharField(max_length=255, blank=True)
     runtime = models.IntegerField(null=True, blank=True)  # in minutes
     rating = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    uk_certification = models.CharField(max_length=10, blank=True, help_text="UK film certification (e.g., U, PG, 12, 15, 18)")
     
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)

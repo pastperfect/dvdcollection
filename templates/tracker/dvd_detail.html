@@ -91,6 +91,13 @@
                         </div>
                     {% endif %}
                     
+                    {% if dvd.uk_certification %}
+                        <div class="col-sm-6 mb-2">
+                            <strong><i class="bi bi-shield-check"></i> UK Certification:</strong>
+                            <span class="badge bg-secondary">{{ dvd.uk_certification }}</span>
+                        </div>
+                    {% endif %}
+                    
                     {% if dvd.genres %}
                         <div class="col-sm-12 mb-2">
                             <strong><i class="bi bi-tag"></i> Genres:</strong>

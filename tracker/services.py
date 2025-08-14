@@ -136,6 +136,11 @@ class TMDBService:
             if external_ids and external_ids.get('imdb_id'):
                 data['imdb_id'] = external_ids['imdb_id']
             
+            # Also fetch UK certification
+            uk_certification = self.get_uk_certification(movie_id)
+            if uk_certification:
+                data['uk_certification'] = uk_certification
+            
             # Cache for 24 hours
             cache.set(cache_key, data, 86400)
             return data
@@ -173,6 +178,53 @@ class TMDBService:
             logger.error(f"TMDB external IDs API error: {e}")
             return None
     
+    def get_movie_certifications(self, movie_id):
+        """Get certification/rating information for a movie."""
+        if not self.api_key:
+            logger.warning("TMDB API key not configured")
+            return None
+            
+        cache_key = f"tmdb_certifications_{movie_id}"
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            return cached_result
+            
+        url = f"{self.base_url}/movie/{movie_id}/release_dates"
+        params = {
+            'api_key': self.api_key
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Cache for 24 hours
+            cache.set(cache_key, data, 86400)
+            return data
+            
+        except requests.RequestException as e:
+            logger.error(f"TMDB certifications API error: {e}")
+            return None
+    
+    def get_uk_certification(self, movie_id):
+        """Get UK certification for a movie."""
+        certifications_data = self.get_movie_certifications(movie_id)
+        if not certifications_data:
+            return None
+            
+        # Look for UK certification
+        results = certifications_data.get('results', [])
+        for country_data in results:
+            if country_data.get('iso_3166_1') == 'GB':  # GB is the ISO code for UK
+                release_dates = country_data.get('release_dates', [])
+                for release in release_dates:
+                    certification = release.get('certification')
+                    if certification and certification.strip():
+                        return certification.strip()
+        
+        return None
+    
     def get_full_poster_url(self, poster_path):
         """Get the full URL for a poster image."""
         if not poster_path:
@@ -196,6 +248,7 @@ class TMDBService:
             'genres': genres,
             'runtime': movie_data.get('runtime'),
             'rating': movie_data.get('vote_average'),
+            'uk_certification': movie_data.get('uk_certification', ''),
         }
     
     def _extract_year(self, date_string):
