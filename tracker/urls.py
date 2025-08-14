@@ -4,7 +4,8 @@ from . import views
 app_name = 'tracker'
 
 urlpatterns = [
-    path('', views.dvd_list, name='dvd_list'),
+    path('', views.home, name='home'),
+    path('collection/', views.dvd_list, name='dvd_list'),
     path('stats/', views.stats, name='stats'),
     path('dvd/<int:pk>/', views.dvd_detail, name='dvd_detail'),
     path('add/', views.dvd_add, name='dvd_add'),

@@ -19,7 +19,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'tracker:dvd_list' %}">
+            <a class="navbar-brand" href="{% url 'tracker:home' %}">
                 <i class="bi bi-collection-play"></i> DVD Collection
             </a>
             
@@ -47,16 +47,6 @@
                             </a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tracker:stats' %}">
-                            <i class="bi bi-graph-up"></i> Statistics
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'tracker:dvd_add' %}">
-                            <i class="bi bi-plus-circle"></i> Add DVD
-                        </a>
-                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-tools"></i> Bulk Tools
@@ -69,6 +59,11 @@
                                 <i class="bi bi-upload"></i> Bulk Upload
                             </a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'tracker:stats' %}">
+                            <i class="bi bi-graph-up"></i> Statistics
+                        </a>
                     </li>
                 </ul>
             </div>

@@ -14,6 +14,35 @@ from collections import Counter
 logger = logging.getLogger(__name__)
 
 
+def home(request):
+    """Home/landing page with overview of collection."""
+    # Get basic stats for the dashboard
+    total_dvds = DVD.objects.count()
+    kept_dvds = DVD.objects.filter(status='kept').count()
+    disposed_dvds = DVD.objects.filter(status='disposed').count()
+    
+    # Recent additions
+    recent_additions = DVD.objects.order_by('-created_at')[:6]
+    
+    # Quick stats
+    tartan_dvds = DVD.objects.filter(is_tartan_dvd=True).count()
+    box_sets_count = DVD.objects.filter(is_box_set=True).values('box_set_name').distinct().count()
+    unwatched_count = DVD.objects.filter(is_unwatched=True).count()
+    
+    context = {
+        'total_dvds': total_dvds,
+        'kept_dvds': kept_dvds,
+        'disposed_dvds': disposed_dvds,
+        'recent_additions': recent_additions,
+        'tartan_dvds': tartan_dvds,
+        'box_sets_count': box_sets_count,
+        'unwatched_count': unwatched_count,
+        'page_title': 'DVD Collection Tracker',
+        'page_icon': 'house',
+    }
+    return render(request, 'tracker/home.html', context)
+
+
 def box_set_autocomplete(request):
     """API endpoint for box set name autocomplete."""
     query = request.GET.get('q', '').strip()

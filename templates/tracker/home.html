@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Welcome Section -->
+    <div class="col-12 mb-4">
+        <div class="jumbotron bg-primary text-white rounded p-4">
+            <div class="container text-center">
+                <h1 class="display-4">
+                    <i class="bi bi-collection-play"></i> DVD Collection Tracker
+                </h1>
+                <p class="lead">Organize, track, and manage your DVD collection with ease.</p>
+                <div class="mt-4">
+                    <a class="btn btn-light btn-lg me-3" href="{% url 'tracker:dvd_list' %}" role="button">
+                        <i class="bi bi-list"></i> View Collection
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="{% url 'tracker:dvd_add' %}" role="button">
+                        <i class="bi bi-plus-circle"></i> Add DVD
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="col-12 mb-4">
+        <h2 class="mb-3"><i class="bi bi-graph-up"></i> Collection Overview</h2>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-collection display-3 mb-2"></i>
+                        <h3>{{ total_dvds }}</h3>
+                        <p class="card-text">Total DVDs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-check-circle display-3 mb-2"></i>
+                        <h3>{{ kept_dvds }}</h3>
+                        <p class="card-text">Kept DVDs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-eye-slash display-3 mb-2"></i>
+                        <h3>{{ unwatched_count }}</h3>
+                        <p class="card-text">Unwatched</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-boxes display-3 mb-2"></i>
+                        <h3>{{ box_sets_count }}</h3>
+                        <p class="card-text">Box Sets</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'tracker:dvd_add' %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-plus-circle text-primary me-2"></i>
+                                <strong>Add New DVD</strong>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                        <p class="mb-1 text-muted">Add a single DVD to your collection</p>
+                    </a>
+                    <a href="{% url 'tracker:bulk_edit' %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-pencil-square text-warning me-2"></i>
+                                <strong>Bulk Edit</strong>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                        <p class="mb-1 text-muted">Edit multiple DVDs at once</p>
+                    </a>
+                    <a href="{% url 'tracker:bulk_upload' %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-upload text-info me-2"></i>
+                                <strong>Bulk Upload</strong>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                        <p class="mb-1 text-muted">Import multiple DVDs from file</p>
+                    </a>
+                    <a href="{% url 'tracker:stats' %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-graph-up text-success me-2"></i>
+                                <strong>View Statistics</strong>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                        <p class="mb-1 text-muted">Detailed collection analytics</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Additions -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Additions</h5>
+                <a href="{% url 'tracker:dvd_list' %}" class="btn btn-sm btn-outline-primary">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_additions %}
+                    <div class="list-group list-group-flush">
+                        {% for dvd in recent_additions %}
+                        <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <strong>{{ dvd.name }}</strong>
+                                    {% if dvd.release_year %}
+                                        <small class="text-muted">({{ dvd.release_year }})</small>
+                                    {% endif %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-{{ dvd.get_status_display_class }}">{{ dvd.get_status_display }}</span>
+                                        <span class="badge bg-{{ dvd.get_media_type_display_class }}">{{ dvd.get_media_type_display }}</span>
+                                        {% if dvd.is_tartan_dvd %}
+                                            <span class="badge bg-purple text-white">Tartan</span>
+                                        {% endif %}
+                                        {% if dvd.is_box_set %}
+                                            <span class="badge bg-info">Box Set</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ dvd.created_at|timesince }} ago</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-4"></i>
+                        <h6 class="mt-3">No DVDs yet</h6>
+                        <p>Start by <a href="{% url 'tracker:dvd_add' %}">adding your first DVD</a>!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Special Collections -->
+    {% if tartan_dvds or box_sets_count %}
+    <div class="col-12 mb-4">
+        <h3 class="mb-3"><i class="bi bi-star"></i> Special Collections</h3>
+        <div class="row g-3">
+            {% if tartan_dvds %}
+            <div class="col-md-6">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <i class="bi bi-star text-warning display-4 mb-3"></i>
+                        <h4>{{ tartan_dvds }} Tartan DVDs</h4>
+                        <p class="text-muted">Specialized Asian cinema collection</p>
+                        <a href="{% url 'tracker:tartan_dvds' %}" class="btn btn-warning">
+                            <i class="bi bi-eye"></i> View Tartan Collection
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if box_sets_count %}
+            <div class="col-md-6">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="bi bi-boxes text-info display-4 mb-3"></i>
+                        <h4>{{ box_sets_count }} Box Sets</h4>
+                        <p class="text-muted">Multi-disc collections and series</p>
+                        <a href="{% url 'tracker:box_sets' %}" class="btn btn-info">
+                            <i class="bi bi-eye"></i> View Box Sets
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
