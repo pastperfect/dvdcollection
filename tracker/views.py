@@ -678,3 +678,144 @@ def stats(request):
         'page_icon': 'graph-up',
     }
     return render(request, 'tracker/stats.html', context)
+
+
+def bulk_edit(request):
+    """Bulk edit view for DVDs with table interface."""
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    media_type_filter = request.GET.get('media_type', '')
+    search_query = request.GET.get('search', '')
+    
+    # Start with all DVDs
+    dvds = DVD.objects.all()
+    
+    # Apply filters
+    if status_filter:
+        dvds = dvds.filter(status=status_filter)
+    if media_type_filter:
+        dvds = dvds.filter(media_type=media_type_filter)
+    if search_query:
+        dvds = dvds.filter(
+            Q(name__icontains=search_query) |
+            Q(box_set_name__icontains=search_query) |
+            Q(storage_box__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(dvds, 25)  # Show 25 DVDs per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'status_choices': DVD.STATUS_CHOICES,
+        'media_type_choices': DVD.MEDIA_TYPE_CHOICES,
+        'current_status': status_filter,
+        'current_media_type': media_type_filter,
+        'current_search': search_query,
+        'page_title': 'Bulk Edit DVDs',
+        'page_icon': 'pencil-square',
+    }
+    return render(request, 'tracker/bulk_edit.html', context)
+
+
+@require_http_methods(["POST"])
+def bulk_update_dvd(request):
+    """API endpoint for updating individual DVD fields via AJAX."""
+    try:
+        data = json.loads(request.body)
+        dvd_id = data.get('dvd_id')
+        field = data.get('field')
+        value = data.get('value')
+        
+        if not dvd_id or not field:
+            return JsonResponse({
+                'success': False,
+                'error': 'DVD ID and field are required'
+            })
+        
+        dvd = get_object_or_404(DVD, pk=dvd_id)
+        
+        # Validate and update the field
+        if field == 'status':
+            if value not in ['kept', 'disposed']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid status value'
+                })
+            dvd.status = value
+        elif field == 'media_type':
+            if value not in ['physical', 'download', 'rip']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid media type value'
+                })
+            dvd.media_type = value
+        elif field == 'is_box_set':
+            dvd.is_box_set = value == 'true'
+        elif field == 'box_set_name':
+            dvd.box_set_name = value
+        elif field == 'storage_box':
+            dvd.storage_box = value
+        elif field == 'is_tartan_dvd':
+            dvd.is_tartan_dvd = value == 'true'
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'Field "{field}" is not editable'
+            })
+        
+        dvd.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Updated {field} successfully'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        })
+    except Exception as e:
+        logger.error(f"Error in bulk_update_dvd: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while updating the DVD'
+        })
+
+
+@require_http_methods(["POST"])
+def delete_dvd_api(request):
+    """API endpoint for deleting DVDs via AJAX."""
+    try:
+        data = json.loads(request.body)
+        dvd_id = data.get('dvd_id')
+        
+        if not dvd_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'DVD ID is required'
+            })
+        
+        dvd = get_object_or_404(DVD, pk=dvd_id)
+        dvd_name = dvd.name
+        dvd.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'"{dvd_name}" has been deleted successfully'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        })
+    except Exception as e:
+        logger.error(f"Error in delete_dvd_api: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while deleting the DVD'
+        })

@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-{{ page_icon }}"></i> {{ page_title }}</h1>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                    <a href="{% url 'tracker:dvd_add' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add New DVD
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Search</label>
+                            <input type="text" name="search" class="form-control" value="{{ current_search }}" 
+                                   placeholder="Search by title, box set, or storage...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Statuses</option>
+                                {% for value, display in status_choices %}
+                                    <option value="{{ value }}" {% if value == current_status %}selected{% endif %}>
+                                        {{ display }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Media Type</label>
+                            <select name="media_type" class="form-select">
+                                <option value="">All Types</option>
+                                {% for value, display in media_type_choices %}
+                                    <option value="{{ value }}" {% if value == current_media_type %}selected{% endif %}>
+                                        {{ display }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search"></i> Filter
+                            </button>
+                            <a href="{% url 'tracker:bulk_edit' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Count -->
+            <div class="mb-3">
+                <small class="text-muted">
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} DVDs
+                </small>
+            </div>
+
+            <!-- Bulk Edit Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 30%;">Movie Name</th>
+                                    <th style="width: 12%;">Status</th>
+                                    <th style="width: 12%;">Media Type</th>
+                                    <th style="width: 18%;">Box Set</th>
+                                    <th style="width: 12%;">Storage Box</th>
+                                    <th style="width: 10%;">Tartan DVD</th>
+                                    <th style="width: 6%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dvd in page_obj %}
+                                <tr data-dvd-id="{{ dvd.pk }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <strong>{{ dvd.name }}</strong>
+                                                {% if dvd.release_year %}
+                                                    <small class="text-muted d-block">({{ dvd.release_year }})</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm editable-field" 
+                                                data-field="status" data-dvd-id="{{ dvd.pk }}">
+                                            {% for value, display in status_choices %}
+                                                <option value="{{ value }}" {% if value == dvd.status %}selected{% endif %}>
+                                                    {{ display }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm editable-field" 
+                                                data-field="media_type" data-dvd-id="{{ dvd.pk }}">
+                                            {% for value, display in media_type_choices %}
+                                                <option value="{{ value }}" {% if value == dvd.media_type %}selected{% endif %}>
+                                                    {{ display }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input editable-checkbox" type="checkbox" 
+                                                       data-field="is_box_set" data-dvd-id="{{ dvd.pk }}"
+                                                       {% if dvd.is_box_set %}checked{% endif %}>
+                                            </div>
+                                            <input type="text" class="form-control form-control-sm editable-text flex-grow-1" 
+                                                   data-field="box_set_name" data-dvd-id="{{ dvd.pk }}"
+                                                   value="{{ dvd.box_set_name|default:'' }}" 
+                                                   placeholder="Box set name...">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm editable-text" 
+                                               data-field="storage_box" data-dvd-id="{{ dvd.pk }}"
+                                               value="{{ dvd.storage_box|default:'' }}" 
+                                               placeholder="Storage location...">
+                                    </td>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input editable-checkbox" type="checkbox" 
+                                                   data-field="is_tartan_dvd" data-dvd-id="{{ dvd.pk }}"
+                                                   {% if dvd.is_tartan_dvd %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical" role="group">
+                                            {% if dvd.tmdb_id %}
+                                                <a href="{% url 'tracker:fix_tmdb_match' dvd.pk %}" 
+                                                   class="btn btn-outline-warning btn-sm" title="Fix TMDB Match">
+                                                    <i class="bi bi-wrench"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'tracker:dvd_delete' dvd.pk %}" 
+                                               class="btn btn-outline-danger btn-sm delete-btn" 
+                                               title="Delete DVD"
+                                               data-dvd-id="{{ dvd.pk }}"
+                                               data-dvd-name="{{ dvd.name }}">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox display-1"></i>
+                                        <h5 class="mt-3">No DVDs found</h5>
+                                        <p>Try adjusting your filters or <a href="{% url 'tracker:dvd_add' %}">add a new DVD</a>.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_status %}status={{ current_status }}&{% endif %}{% if current_media_type %}media_type={{ current_media_type }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_status %}status={{ current_status }}&{% endif %}{% if current_media_type %}media_type={{ current_media_type }}&{% endif %}page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_status %}status={{ current_status }}&{% endif %}{% if current_media_type %}media_type={{ current_media_type }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle text-warning"></i> Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the following DVD?</p>
+                <div class="alert alert-warning">
+                    <strong id="dvdNameToDelete"></strong>
+                </div>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i> Delete DVD
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast for notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="updateToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            <strong class="me-auto">Update Successful</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Field updated successfully!
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+            <strong class="me-auto">Update Failed</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            An error occurred while updating the field.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    // Delete modal elements
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const dvdNameToDelete = document.getElementById('dvdNameToDelete');
+    let currentDeleteId = null;
+
+    // Update function
+    function updateDVDField(dvdId, field, value) {
+        fetch('{% url "tracker:bulk_update_dvd" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                dvd_id: dvdId,
+                field: field,
+                value: value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('updateToast', 'Field updated successfully!');
+            } else {
+                showToast('errorToast', data.error || 'An error occurred while updating the field.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('errorToast', 'An error occurred while updating the field.');
+        });
+    }
+
+    // Delete function
+    function deleteDVD(dvdId) {
+        fetch('{% url "tracker:delete_dvd_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                dvd_id: dvdId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('updateToast', data.message);
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-dvd-id="${dvdId}"]`);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                showToast('errorToast', data.error || 'An error occurred while deleting the DVD.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('errorToast', 'An error occurred while deleting the DVD.');
+        });
+    }
+
+    // Show toast notification
+    function showToast(toastId, message) {
+        const toastElement = document.getElementById(toastId);
+        const toastBody = toastElement.querySelector('.toast-body');
+        if (toastBody) {
+            toastBody.textContent = message;
+        }
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+    }
+
+    // Handle delete button clicks
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentDeleteId = this.getAttribute('data-dvd-id');
+            const dvdName = this.getAttribute('data-dvd-name');
+            dvdNameToDelete.textContent = dvdName;
+            deleteModal.show();
+        });
+    });
+
+    // Handle confirm delete
+    confirmDeleteBtn.addEventListener('click', function() {
+        if (currentDeleteId) {
+            deleteDVD(currentDeleteId);
+            deleteModal.hide();
+            currentDeleteId = null;
+        }
+    });
+
+    // Handle select field changes
+    document.querySelectorAll('.editable-field').forEach(select => {
+        select.addEventListener('change', function() {
+            const dvdId = this.getAttribute('data-dvd-id');
+            const field = this.getAttribute('data-field');
+            const value = this.value;
+            updateDVDField(dvdId, field, value);
+        });
+    });
+
+    // Handle checkbox changes
+    document.querySelectorAll('.editable-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const dvdId = this.getAttribute('data-dvd-id');
+            const field = this.getAttribute('data-field');
+            const value = this.checked;
+            updateDVDField(dvdId, field, value);
+        });
+    });
+
+    // Handle text field changes with debouncing
+    let textInputTimers = {};
+    document.querySelectorAll('.editable-text').forEach(input => {
+        input.addEventListener('input', function() {
+            const dvdId = this.getAttribute('data-dvd-id');
+            const field = this.getAttribute('data-field');
+            const value = this.value;
+            
+            // Clear existing timer
+            if (textInputTimers[dvdId + field]) {
+                clearTimeout(textInputTimers[dvdId + field]);
+            }
+            
+            // Set new timer
+            textInputTimers[dvdId + field] = setTimeout(() => {
+                updateDVDField(dvdId, field, value);
+            }, 1000); // Wait 1 second after user stops typing
+        });
+    });
+});
+</script>
+{% endblock %}
