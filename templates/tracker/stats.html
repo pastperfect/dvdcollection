@@ -185,6 +185,27 @@
     </div>
     {% endif %}
 
+    <!-- Top Production Companies -->
+    {% if top_production_companies %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Top Production Companies</h5>
+            </div>
+            <div class="card-body">
+                {% for company, count in top_production_companies %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary text-white">{{ company }}</span>
+                        <span class="fw-bold">{{ count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row">
     <!-- Top Box Sets -->
     {% if top_box_sets %}
     <div class="col-lg-6 mb-4">

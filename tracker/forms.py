@@ -137,6 +137,16 @@ class DVDFilterForm(forms.Form):
             'class': 'form-select'
         })
     )
+    
+    production_company = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Filter by production company...',
+            'autocomplete': 'off'
+        })
+    )
 
 
 class BulkUploadForm(forms.Form):

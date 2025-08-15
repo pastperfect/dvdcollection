@@ -94,6 +94,7 @@ def dvd_list(request):
         is_box_set = filter_form.cleaned_data.get('is_box_set')
         is_unopened = filter_form.cleaned_data.get('is_unopened')
         is_unwatched = filter_form.cleaned_data.get('is_unwatched')
+        production_company = filter_form.cleaned_data.get('production_company')
         
         if search:
             dvds = dvds.filter(
@@ -120,6 +121,9 @@ def dvd_list(request):
             
         if is_unwatched:
             dvds = dvds.filter(is_unwatched=(is_unwatched == 'true'))
+            
+        if production_company:
+            dvds = dvds.filter(production_companies__icontains=production_company)
     
     # Pagination
     paginator = Paginator(dvds, 12)  # 12 DVDs per page
@@ -717,6 +721,16 @@ def stats(request):
     genre_counts = Counter(all_genres)
     top_genres = genre_counts.most_common(10)
     
+    # Top production companies
+    all_companies = []
+    for dvd in DVD.objects.filter(production_companies__isnull=False).exclude(production_companies=''):
+        if dvd.production_companies:
+            companies_list = [company.strip() for company in dvd.production_companies.split(',')]
+            all_companies.extend(companies_list)
+    
+    company_counts = Counter(all_companies)
+    top_production_companies = company_counts.most_common(10)
+    
     # Top box sets (by movie count)
     top_box_sets = DVD.objects.filter(is_box_set=True).values('box_set_name').annotate(
         movie_count=Count('id')
@@ -750,6 +764,7 @@ def stats(request):
         'runtime_stats': runtime_stats,
         'year_stats': year_stats,
         'top_genres': top_genres,
+        'top_production_companies': top_production_companies,
         'top_box_sets': top_box_sets,
         'recent_additions': recent_additions,
         'decade_stats': sorted_decades,
