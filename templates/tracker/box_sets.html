@@ -86,7 +86,7 @@
                                     {% for poster in box_set.posters %}
                                         {% if forloop.counter <= 4 %}
                                             <div class="poster-thumbnail flex-shrink-0">
-                                                <img src="{{ poster }}" 
+                                                <img src="/media/{{ poster }}" 
                                                      alt="Movie {{ forloop.counter }}" 
                                                      class="img-fluid rounded shadow-sm"
                                                      style="width: 60px; height: 90px; object-fit: cover;">

@@ -90,8 +90,8 @@
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                 <div class="card dvd-card h-100">
                     <div class="poster-container">
-                        {% if dvd.poster_url %}
-                            <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="poster-img">
+                        {% if dvd.poster %}
+                            <img src="{{ dvd.poster.url }}" alt="{{ dvd.name }}" class="poster-img">
                         {% else %}
                             <div class="no-poster">
                                 <i class="bi bi-camera-video display-4"></i>

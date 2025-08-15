@@ -216,9 +216,18 @@ def dvd_add_from_tmdb(request, tmdb_id):
             dvd = form.save(commit=False)
             # Fill in TMDB data
             tmdb_data = tmdb_service.format_movie_data(movie_data)
+            
+            poster_path = tmdb_data.pop('poster_path', None)
+
             for key, value in tmdb_data.items():
                 setattr(dvd, key, value)
+            
             dvd.save()
+
+            # Download poster
+            if poster_path:
+                full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                tmdb_service.download_poster(dvd, full_poster_url)
             
             messages.success(request, f'"{dvd.name}" has been added to your collection.')
             return redirect('tracker:dvd_detail', pk=dvd.pk)
@@ -349,6 +358,9 @@ def bulk_upload(request):
                     
                     # Create DVD entry
                     tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
+                    
+                    poster_path = tmdb_formatted_data.pop('poster_path', None)
+
                     dvd = DVD.objects.create(
                         name=tmdb_formatted_data['name'],
                         overview=tmdb_formatted_data['overview'],
@@ -357,7 +369,6 @@ def bulk_upload(request):
                         genres=tmdb_formatted_data['genres'],
                         tmdb_id=tmdb_formatted_data['tmdb_id'],
                         imdb_id=tmdb_formatted_data['imdb_id'],
-                        poster_url=tmdb_formatted_data['poster_url'],
                         rating=tmdb_formatted_data['rating'],
                         status=default_status,
                         media_type=default_media_type,
@@ -369,6 +380,10 @@ def bulk_upload(request):
                         is_unwatched=default_is_unwatched,
                         storage_box=default_storage_box if default_status == 'kept' else ''
                     )
+
+                    if poster_path:
+                        full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                        tmdb_service.download_poster(dvd, full_poster_url)
                     
                     results['added'].append(dvd.name)
                     
@@ -440,6 +455,8 @@ def fix_tmdb_match(request, pk):
                     # Update DVD with new TMDB data
                     tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
                     
+                    poster_path = tmdb_formatted_data.pop('poster_path', None)
+
                     # Keep the original user settings (status, media_type)
                     dvd.name = tmdb_formatted_data['name']
                     dvd.overview = tmdb_formatted_data['overview']
@@ -448,9 +465,12 @@ def fix_tmdb_match(request, pk):
                     dvd.genres = tmdb_formatted_data['genres']
                     dvd.tmdb_id = tmdb_formatted_data['tmdb_id']
                     dvd.imdb_id = tmdb_formatted_data['imdb_id']
-                    dvd.poster_url = tmdb_formatted_data['poster_url']
                     dvd.rating = tmdb_formatted_data['rating']
                     dvd.save()
+
+                    if poster_path:
+                        full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                        tmdb_service.download_poster(dvd, full_poster_url)
                     
                     messages.success(request, f'Successfully updated "{dvd.name}" with correct TMDB data.')
                     return redirect('tracker:dvd_detail', pk=dvd.pk)
@@ -532,7 +552,7 @@ def box_sets(request):
         .values('box_set_name')
         .annotate(
             movie_count=Count('id'),
-            first_poster=Min('poster_url'),
+            first_poster=Min('poster'),
             latest_added=Max('created_at')
         )
         .order_by('box_set_name')
@@ -549,10 +569,10 @@ def box_sets(request):
             DVD.objects.filter(
                 is_box_set=True, 
                 box_set_name=box_set['box_set_name'],
-                poster_url__isnull=False
+                poster__isnull=False
             ).exclude(
-                poster_url=''
-            ).values_list('poster_url', flat=True)[:4]
+                poster=''
+            ).values_list('poster', flat=True)[:4]
         )
     
     # Pagination
@@ -911,6 +931,7 @@ def refresh_all_tmdb(request):
                         logger.info(f"Formatted data for DVD {dvd.id}: {list(formatted_data.keys())}")
                         
                         # Update DVD with fresh data
+                        poster_path = formatted_data.pop('poster_path', None)
                         for field, value in formatted_data.items():
                             if hasattr(dvd, field):
                                 logger.info(f"Setting DVD {dvd.id}.{field} = {repr(value)}")
@@ -919,6 +940,12 @@ def refresh_all_tmdb(request):
                         logger.info(f"Saving DVD {dvd.id}...")
                         dvd.updated_at = timezone.now()
                         dvd.save()
+
+                        # Download poster
+                        if poster_path:
+                            full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                            tmdb_service.download_poster(dvd, full_poster_url)
+
                         logger.info(f"Successfully saved DVD {dvd.id}")
                         updated_count += 1
                     else:

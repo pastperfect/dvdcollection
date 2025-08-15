@@ -7,8 +7,8 @@
     <div class="col-md-4">
         <!-- Poster -->
         <div class="poster-container mb-3">
-            {% if dvd.poster_url %}
-                <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="img-fluid rounded">
+            {% if dvd.poster %}
+                <img src="{{ dvd.poster.url }}" alt="{{ dvd.name }}" class="img-fluid rounded">
             {% else %}
                 <div class="no-poster rounded" style="height: 500px;">
                     <i class="bi bi-camera-video display-1"></i>

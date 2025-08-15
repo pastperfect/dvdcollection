@@ -30,7 +30,7 @@ class DVD(models.Model):
     # TMDB data
     tmdb_id = models.IntegerField(null=True, blank=True)
     imdb_id = models.CharField(max_length=20, blank=True, help_text="IMDB ID (e.g., tt1234567)")
-    poster_url = models.URLField(max_length=500, blank=True)
+    poster = models.ImageField(upload_to='posters/', blank=True, null=True)
     overview = models.TextField(blank=True)
     release_year = models.IntegerField(null=True, blank=True)
     genres = models.CharField(max_length=255, blank=True)

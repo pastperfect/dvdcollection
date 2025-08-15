@@ -1,7 +1,9 @@
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +232,24 @@ class TMDBService:
         if not poster_path:
             return None
         return f"{self.image_base_url}{poster_path}"
+
+    def download_poster(self, dvd, poster_url):
+        """Download a poster image and save it to the DVD."""
+        if not poster_url:
+            return
+
+        try:
+            response = requests.get(poster_url, stream=True, timeout=10)
+            response.raise_for_status()
+
+            # Get the filename from the URL
+            filename = os.path.basename(poster_url)
+            
+            # Save the image to the poster field
+            dvd.poster.save(filename, ContentFile(response.content), save=True)
+
+        except requests.RequestException as e:
+            logger.error(f"Error downloading poster for DVD {dvd.id}: {e}")
     
     def format_movie_data(self, movie_data):
         """Format TMDB movie data for our DVD model."""
@@ -243,7 +263,7 @@ class TMDBService:
             'imdb_id': movie_data.get('imdb_id', ''),
             'name': movie_data.get('title', ''),
             'overview': movie_data.get('overview', ''),
-            'poster_url': self.get_full_poster_url(movie_data.get('poster_path')),
+            'poster_path': movie_data.get('poster_path'),
             'release_year': self._extract_year(movie_data.get('release_date')),
             'genres': genres,
             'runtime': movie_data.get('runtime'),
@@ -276,9 +296,8 @@ class TMDBService:
         if movie_data.get('overview'):
             formatted_data['overview'] = movie_data.get('overview')
             
-        poster_url = self.get_full_poster_url(movie_data.get('poster_path'))
-        if poster_url:
-            formatted_data['poster_url'] = poster_url
+        if movie_data.get('poster_path'):
+            formatted_data['poster_path'] = movie_data.get('poster_path')
             
         release_year = self._extract_year(movie_data.get('release_date'))
         if release_year:

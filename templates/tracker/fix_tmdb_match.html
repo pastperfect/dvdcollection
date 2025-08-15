@@ -22,8 +22,8 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            {% if dvd.poster_url %}
-                                <img src="{{ dvd.poster_url }}" alt="{{ dvd.name }}" class="img-fluid rounded">
+                            {% if dvd.poster %}
+                                <img src="{{ dvd.poster.url }}" alt="{{ dvd.name }}" class="img-fluid rounded">
                             {% else %}
                                 <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 300px;">
                                     <i class="bi bi-film text-muted" style="font-size: 3rem;"></i>
