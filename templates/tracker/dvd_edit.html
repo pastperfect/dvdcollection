@@ -10,9 +10,14 @@
                 <h1><i class="bi bi-pencil"></i> Edit DVD</h1>
                 <h2 class="text-primary">{{ dvd.name }}</h2>
             </div>
-            <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Details
-            </a>
+            <div>
+                <a href="{% url 'tracker:dvd_detail' dvd.pk %}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left"></i> Back to Details
+                </a>
+                <a href="{% url 'tracker:dvd_delete' dvd.pk %}" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> Delete DVD
+                </a>
+            </div>
         </div>
         
         <form method="post">
