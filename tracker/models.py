@@ -37,6 +37,12 @@ class DVD(models.Model):
     runtime = models.IntegerField(null=True, blank=True)  # in minutes
     rating = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
     uk_certification = models.CharField(max_length=10, blank=True, help_text="UK film certification (e.g., U, PG, 12, 15, 18)")
+    tmdb_user_score = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True, help_text="TMDB user score out of 10")
+    original_language = models.CharField(max_length=10, blank=True, help_text="Original language of the movie")
+    budget = models.BigIntegerField(null=True, blank=True, help_text="Movie budget in USD")
+    revenue = models.BigIntegerField(null=True, blank=True, help_text="Movie revenue in USD")
+    production_companies = models.TextField(blank=True, help_text="Production companies, comma-separated")
+    tagline = models.CharField(max_length=255, blank=True)
     
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)

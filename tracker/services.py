@@ -236,7 +236,7 @@ class TMDBService:
         if not movie_data:
             return {}
             
-        genres = ', '.join([genre['name'] for genre in movie_data.get('genres', [])])
+        production_companies = ', '.join([pc['name'] for pc in movie_data.get('production_companies', [])])
         
         return {
             'tmdb_id': movie_data.get('id'),
@@ -249,6 +249,12 @@ class TMDBService:
             'runtime': movie_data.get('runtime'),
             'rating': movie_data.get('vote_average'),
             'uk_certification': movie_data.get('uk_certification', ''),
+            'tmdb_user_score': movie_data.get('vote_average'),
+            'original_language': movie_data.get('original_language', ''),
+            'budget': movie_data.get('budget'),
+            'revenue': movie_data.get('revenue'),
+            'production_companies': production_companies,
+            'tagline': movie_data.get('tagline', ''),
         }
     
     def format_movie_data_for_refresh(self, movie_data):
@@ -289,6 +295,25 @@ class TMDBService:
             
         if movie_data.get('uk_certification'):
             formatted_data['uk_certification'] = movie_data.get('uk_certification')
+            
+        if movie_data.get('vote_average'):
+            formatted_data['tmdb_user_score'] = movie_data.get('vote_average')
+            
+        if movie_data.get('original_language'):
+            formatted_data['original_language'] = movie_data.get('original_language')
+            
+        if movie_data.get('budget') is not None:
+            formatted_data['budget'] = movie_data.get('budget')
+            
+        if movie_data.get('revenue') is not None:
+            formatted_data['revenue'] = movie_data.get('revenue')
+            
+        production_companies = ', '.join([pc['name'] for pc in movie_data.get('production_companies', [])])
+        if production_companies:
+            formatted_data['production_companies'] = production_companies
+            
+        if movie_data.get('tagline'):
+            formatted_data['tagline'] = movie_data.get('tagline')
         
         return formatted_data
     
