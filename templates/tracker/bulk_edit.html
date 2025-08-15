@@ -13,9 +13,9 @@
                     <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Back to List
                     </a>
-                    <a href="{% url 'tracker:dvd_add' %}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add New DVD
-                    </a>
+                    <button id="refreshTmdbBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh TMDB Data
+                    </button>
                 </div>
             </div>
 
@@ -215,6 +215,44 @@
     </div>
 </div>
 
+<!-- TMDB Refresh Progress Modal -->
+<div class="modal fade" id="refreshModal" tabindex="-1" aria-labelledby="refreshModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="refreshModalLabel">
+                    <i class="bi bi-arrow-clockwise text-primary"></i> Refreshing TMDB Data
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p>Refreshing TMDB data for all movies in your collection...</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 0%" 
+                             id="refreshProgressBar">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <span id="refreshStatus">Preparing to refresh...</span>
+                    </small>
+                </div>
+                <div id="refreshResults" class="mt-3" style="display: none;">
+                    <h6>Results:</h6>
+                    <ul id="refreshResultsList" class="list-unstyled">
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="refreshCloseBtn" data-bs-dismiss="modal" style="display: none;">
+                    <i class="bi bi-x-circle"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -284,6 +322,116 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     const dvdNameToDelete = document.getElementById('dvdNameToDelete');
     let currentDeleteId = null;
+
+    // TMDB Refresh modal elements
+    const refreshModal = new bootstrap.Modal(document.getElementById('refreshModal'));
+    const refreshTmdbBtn = document.getElementById('refreshTmdbBtn');
+    const refreshProgressBar = document.getElementById('refreshProgressBar');
+    const refreshStatus = document.getElementById('refreshStatus');
+    const refreshResults = document.getElementById('refreshResults');
+    const refreshResultsList = document.getElementById('refreshResultsList');
+    const refreshCloseBtn = document.getElementById('refreshCloseBtn');
+
+    // Handle TMDB refresh
+    refreshTmdbBtn.addEventListener('click', function() {
+        refreshModal.show();
+        refreshTmdbBtn.disabled = true;
+        refreshCloseBtn.style.display = 'none';
+        refreshResults.style.display = 'none';
+        refreshProgressBar.style.width = '0%';
+        refreshStatus.textContent = 'Starting refresh...';
+        refreshResultsList.innerHTML = '';
+        
+        startTmdbRefresh();
+    });
+
+    // Start TMDB refresh process
+    function startTmdbRefresh() {
+        fetch('{% url "tracker:refresh_all_tmdb" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                checkRefreshProgress(data.task_id);
+            } else {
+                refreshStatus.textContent = 'Error: ' + (data.error || 'Failed to start refresh');
+                refreshCloseBtn.style.display = 'inline-block';
+                refreshTmdbBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            refreshStatus.textContent = 'Error: Failed to start refresh';
+            refreshCloseBtn.style.display = 'inline-block';
+            refreshTmdbBtn.disabled = false;
+        });
+    }
+
+    // Check refresh progress
+    function checkRefreshProgress(taskId) {
+        const checkProgress = () => {
+            fetch(`{% url "tracker:refresh_progress" %}?task_id=${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.progress !== undefined) {
+                    const percentage = Math.round(data.progress);
+                    refreshProgressBar.style.width = percentage + '%';
+                    refreshStatus.textContent = data.status || `Progress: ${percentage}%`;
+                    
+                    if (data.completed) {
+                        refreshProgressBar.classList.remove('progress-bar-animated');
+                        refreshCloseBtn.style.display = 'inline-block';
+                        refreshTmdbBtn.disabled = false;
+                        
+                        // Show results
+                        if (data.results) {
+                            showRefreshResults(data.results);
+                        }
+                        
+                        // Refresh the page to show updated data
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else {
+                        setTimeout(checkProgress, 1000); // Check again in 1 second
+                    }
+                } else {
+                    refreshStatus.textContent = 'Error checking progress';
+                    refreshCloseBtn.style.display = 'inline-block';
+                    refreshTmdbBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                refreshStatus.textContent = 'Error checking progress';
+                refreshCloseBtn.style.display = 'inline-block';
+                refreshTmdbBtn.disabled = false;
+            });
+        };
+        
+        checkProgress();
+    }
+
+    // Show refresh results
+    function showRefreshResults(results) {
+        refreshResults.style.display = 'block';
+        refreshResultsList.innerHTML = '';
+        
+        if (results.updated > 0) {
+            refreshResultsList.innerHTML += `<li class="text-success"><i class="bi bi-check-circle"></i> ${results.updated} movies updated successfully</li>`;
+        }
+        if (results.failed > 0) {
+            refreshResultsList.innerHTML += `<li class="text-danger"><i class="bi bi-x-circle"></i> ${results.failed} movies failed to update</li>`;
+        }
+        if (results.skipped > 0) {
+            refreshResultsList.innerHTML += `<li class="text-muted"><i class="bi bi-dash-circle"></i> ${results.skipped} movies skipped (no TMDB ID)</li>`;
+        }
+    }
 
     // Update function
     function updateDVDField(dvdId, field, value) {

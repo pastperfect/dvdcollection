@@ -848,3 +848,131 @@ def delete_dvd_api(request):
             'success': False,
             'error': 'An error occurred while deleting the DVD'
         })
+
+
+@require_http_methods(["POST"])
+def refresh_all_tmdb(request):
+    """Start a background task to refresh TMDB data for all DVDs."""
+    import uuid
+    from django.core.cache import cache
+    
+    # Generate a unique task ID
+    task_id = str(uuid.uuid4())
+    
+    # Initialize progress tracking
+    cache.set(f'tmdb_refresh_{task_id}', {
+        'progress': 0,
+        'status': 'Starting refresh...',
+        'completed': False,
+        'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+    }, 3600)  # Cache for 1 hour
+    
+    # Start the refresh process in the background
+    from django.utils import timezone
+    import threading
+    
+    def refresh_task():
+        try:
+            tmdb_service = TMDBService()
+            # Only get DVDs with valid TMDB IDs (greater than 0)
+            # This skips manually added DVDs that don't have TMDB data
+            dvds_with_tmdb = DVD.objects.filter(tmdb_id__gt=0)
+            total_dvds = dvds_with_tmdb.count()
+            
+            if total_dvds == 0:
+                cache.set(f'tmdb_refresh_{task_id}', {
+                    'progress': 100,
+                    'status': 'No DVDs with TMDB IDs found to refresh',
+                    'completed': True,
+                    'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+                }, 3600)
+                return
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for i, dvd in enumerate(dvds_with_tmdb, 1):
+                try:
+                    # Update progress
+                    progress = (i / total_dvds) * 100
+                    cache.set(f'tmdb_refresh_{task_id}', {
+                        'progress': progress,
+                        'status': f'Updating {dvd.name}... ({i}/{total_dvds})',
+                        'completed': False,
+                        'results': {'updated': updated_count, 'failed': failed_count, 'skipped': 0}
+                    }, 3600)
+                    
+                    # Fetch fresh data from TMDB
+                    logger.info(f"Fetching TMDB data for DVD {dvd.id} with TMDB ID: {dvd.tmdb_id}")
+                    movie_data = tmdb_service.get_movie_details(dvd.tmdb_id)
+                    if movie_data:
+                        logger.info(f"Got TMDB data for DVD {dvd.id}, formatting...")
+                        formatted_data = tmdb_service.format_movie_data_for_refresh(movie_data)
+                        logger.info(f"Formatted data for DVD {dvd.id}: {list(formatted_data.keys())}")
+                        
+                        # Update DVD with fresh data
+                        for field, value in formatted_data.items():
+                            if hasattr(dvd, field):
+                                logger.info(f"Setting DVD {dvd.id}.{field} = {repr(value)}")
+                                setattr(dvd, field, value)
+                        
+                        logger.info(f"Saving DVD {dvd.id}...")
+                        dvd.updated_at = timezone.now()
+                        dvd.save()
+                        logger.info(f"Successfully saved DVD {dvd.id}")
+                        updated_count += 1
+                    else:
+                        logger.warning(f"No data returned from TMDB for DVD {dvd.id} (TMDB ID: {dvd.tmdb_id})")
+                        failed_count += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error refreshing DVD {dvd.id} ('{dvd.name}', TMDB ID: {getattr(dvd, 'tmdb_id', 'None')}): {str(e)}")
+                    failed_count += 1
+            
+            # Mark as completed
+            cache.set(f'tmdb_refresh_{task_id}', {
+                'progress': 100,
+                'status': f'Refresh completed! Updated {updated_count}, Failed {failed_count}',
+                'completed': True,
+                'results': {'updated': updated_count, 'failed': failed_count, 'skipped': 0}
+            }, 3600)
+            
+        except Exception as e:
+            logger.error(f"Error in TMDB refresh task: {str(e)}")
+            cache.set(f'tmdb_refresh_{task_id}', {
+                'progress': 0,
+                'status': f'Error: {str(e)}',
+                'completed': True,
+                'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+            }, 3600)
+    
+    # Start the background thread
+    thread = threading.Thread(target=refresh_task)
+    thread.daemon = True
+    thread.start()
+    
+    return JsonResponse({
+        'success': True,
+        'task_id': task_id
+    })
+
+
+def refresh_progress(request):
+    """Check the progress of a TMDB refresh task."""
+    task_id = request.GET.get('task_id')
+    if not task_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'Task ID required'
+        })
+    
+    from django.core.cache import cache
+    progress_data = cache.get(f'tmdb_refresh_{task_id}')
+    
+    if progress_data is None:
+        return JsonResponse({
+            'success': False,
+            'error': 'Task not found'
+        })
+    
+    return JsonResponse(progress_data)

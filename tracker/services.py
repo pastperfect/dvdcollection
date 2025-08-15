@@ -251,6 +251,47 @@ class TMDBService:
             'uk_certification': movie_data.get('uk_certification', ''),
         }
     
+    def format_movie_data_for_refresh(self, movie_data):
+        """Format TMDB movie data for refreshing existing DVDs (excludes tmdb_id)."""
+        if not movie_data:
+            return {}
+            
+        genres = ', '.join([genre['name'] for genre in movie_data.get('genres', [])])
+        
+        formatted_data = {}
+        
+        # Only include fields that have values and are safe to update
+        if movie_data.get('imdb_id'):
+            formatted_data['imdb_id'] = movie_data.get('imdb_id')
+        
+        if movie_data.get('title'):
+            formatted_data['name'] = movie_data.get('title')
+            
+        if movie_data.get('overview'):
+            formatted_data['overview'] = movie_data.get('overview')
+            
+        poster_url = self.get_full_poster_url(movie_data.get('poster_path'))
+        if poster_url:
+            formatted_data['poster_url'] = poster_url
+            
+        release_year = self._extract_year(movie_data.get('release_date'))
+        if release_year:
+            formatted_data['release_year'] = release_year
+            
+        if genres:
+            formatted_data['genres'] = genres
+            
+        if movie_data.get('runtime'):
+            formatted_data['runtime'] = movie_data.get('runtime')
+            
+        if movie_data.get('vote_average'):
+            formatted_data['rating'] = movie_data.get('vote_average')
+            
+        if movie_data.get('uk_certification'):
+            formatted_data['uk_certification'] = movie_data.get('uk_certification')
+        
+        return formatted_data
+    
     def _extract_year(self, date_string):
         """Extract year from TMDB date string (YYYY-MM-DD)."""
         if not date_string:
