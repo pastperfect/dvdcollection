@@ -88,6 +88,12 @@ class DVD(models.Model):
             return [g.strip() for g in self.genres.split(',')]
         return []
     
+    def get_production_companies_list(self):
+        """Return production companies as a list."""
+        if self.production_companies:
+            return [pc.strip() for pc in self.production_companies.split(',')]
+        return []
+    
     def get_status_display_class(self):
         """Return CSS class for status display."""
         classes = {
