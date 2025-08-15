@@ -125,18 +125,21 @@
                         <span class="text-muted">${{ dvd.revenue|floatformat:0 }}</span>
                     </div>
                     {% endif %}
-                    
-                    {% if dvd.genres %}
-                        <div class="col-sm-12 mb-2">
-                            <strong><i class="bi bi-tag"></i> Genres:</strong>
-                            <div class="mt-1">
-                                {% for genre in dvd.get_genres_list %}
-                                    <span class="badge bg-light text-dark me-1">{{ genre }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
                 </div>
+                
+                {% if dvd.genres %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-12">
+                        <strong><i class="bi bi-tag"></i> Genres:</strong>
+                        <div class="mt-2">
+                            {% for genre in dvd.get_genres_list %}
+                                <span class="badge bg-light text-dark me-1">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         
@@ -152,59 +155,8 @@
             </div>
         {% endif %}
         
-        <!-- Torrent Downloads -->
-        {% if dvd.imdb_id %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h6>
-                </div>
-                <div class="card-body">
-                    {% if torrents %}
-                        <div class="torrent-links">
-                            {% for torrent in torrents %}
-                                <a href="{{ torrent.url }}" 
-                                   class="btn btn-outline-primary me-2 mb-2" 
-                                   target="_blank" 
-                                   rel="noopener noreferrer"
-                                   title="Size: {{ torrent.size }}, Seeds: {{ torrent.seeds }}, Peers: {{ torrent.peers }}">
-                                    <i class="bi bi-download"></i> 
-                                    Download {{ torrent.quality }}
-                                    <small class="text-muted">({{ torrent.size }})</small>
-                                </a>
-                            {% endfor %}
-                        </div>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle"></i>
-                            Torrent links provided by <a href="https://yts.mx" target="_blank" class="text-decoration-none">YTS</a>
-                        </small>
-                    {% else %}
-                        <div class="alert alert-info mb-0" role="alert">
-                            <i class="bi bi-info-circle"></i>
-                            No torrents available for this movie on YTS.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% elif dvd.tmdb_id %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h6>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-warning mb-2" role="alert">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        IMDB ID not available. 
-                        <button class="btn btn-sm btn-outline-primary ms-2" id="fetch-imdb-btn" onclick="fetchImdbId({{ dvd.pk }})">
-                            <i class="bi bi-cloud-download"></i> Auto-fetch IMDB ID
-                        </button>
-                    </div>
-                    <div id="imdb-fetch-result" class="mt-2" style="display: none;"></div>
-                </div>
-            </div>
-        {% endif %}
-        
         <!-- Collection Details -->
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header">
                 <h6 class="mb-0"><i class="bi bi-info-circle"></i> Collection Details</h6>
             </div>
@@ -266,11 +218,62 @@
                     </div>
                     <div class="col-sm-6 mb-2">
                         <strong>Last Updated:</strong>
-                                                <span class="text-muted">{{ dvd.updated_at|date:"M d, Y" }}</span>
+                        <span class="text-muted">{{ dvd.updated_at|date:"M d, Y" }}</span>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Torrent Downloads -->
+        {% if dvd.imdb_id %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h6>
+                </div>
+                <div class="card-body">
+                    {% if torrents %}
+                        <div class="torrent-links">
+                            {% for torrent in torrents %}
+                                <a href="{{ torrent.url }}" 
+                                   class="btn btn-outline-primary me-2 mb-2" 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   title="Size: {{ torrent.size }}, Seeds: {{ torrent.seeds }}, Peers: {{ torrent.peers }}">
+                                    <i class="bi bi-download"></i> 
+                                    Download {{ torrent.quality }}
+                                    <small class="text-muted">({{ torrent.size }})</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Torrent links provided by <a href="https://yts.mx" target="_blank" class="text-decoration-none">YTS</a>
+                        </small>
+                    {% else %}
+                        <div class="alert alert-info mb-0" role="alert">
+                            <i class="bi bi-info-circle"></i>
+                            No torrents available for this movie on YTS.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% elif dvd.tmdb_id %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-2" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        IMDB ID not available. 
+                        <button class="btn btn-sm btn-outline-primary ms-2" id="fetch-imdb-btn" onclick="fetchImdbId({{ dvd.pk }})">
+                            <i class="bi bi-cloud-download"></i> Auto-fetch IMDB ID
+                        </button>
+                    </div>
+                    <div id="imdb-fetch-result" class="mt-2" style="display: none;"></div>
+                </div>
+            </div>
+        {% endif %}
 
         <!-- IMDB Link -->
                     </div>
