@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-gear"></i> Admin Settings</h1>
+                <p class="text-muted mb-0">Manage application configuration</p>
+            </div>
+            <a href="{% url 'tracker:home' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Home
+            </a>
+        </div>
+
+        <!-- TMDB API Configuration -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-key"></i> TMDB API Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="tmdb_api_key" class="form-label">TMDB API Key</label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="tmdb_api_key" 
+                                   name="tmdb_api_key" 
+                                   value="{{ settings.tmdb_api_key }}"
+                                   placeholder="Enter your TMDB API key">
+                            <button class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    onclick="togglePasswordVisibility('tmdb_api_key')">
+                                <i class="bi bi-eye" id="tmdb_api_key_icon"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i>
+                            Get your TMDB API key from 
+                            <a href="https://www.themoviedb.org/settings/api" target="_blank" class="text-decoration-none">
+                                The Movie Database API settings
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info">
+                                        <i class="bi bi-check-circle"></i> Current Status
+                                    </h6>
+                                    {% if settings.tmdb_api_key %}
+                                        <p class="card-text text-success mb-0">
+                                            <i class="bi bi-shield-check"></i> API Key configured
+                                        </p>
+                                        <small class="text-muted">
+                                            Key: ****{{ settings.tmdb_api_key|slice:"-4:" }}
+                                        </small>
+                                    {% else %}
+                                        <p class="card-text text-warning mb-0">
+                                            <i class="bi bi-exclamation-triangle"></i> No API Key configured
+                                        </p>
+                                        <small class="text-muted">
+                                            TMDB features will not work without an API key
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-title text-secondary">
+                                        <i class="bi bi-info-circle"></i> Features Enabled
+                                    </h6>
+                                    <ul class="list-unstyled mb-0 small">
+                                        <li class="{% if settings.tmdb_api_key %}text-success{% else %}text-muted{% endif %}">
+                                            <i class="bi bi-{% if settings.tmdb_api_key %}check{% else %}x{% endif %}"></i> Movie search & add
+                                        </li>
+                                        <li class="{% if settings.tmdb_api_key %}text-success{% else %}text-muted{% endif %}">
+                                            <i class="bi bi-{% if settings.tmdb_api_key %}check{% else %}x{% endif %}"></i> Automatic metadata
+                                        </li>
+                                        <li class="{% if settings.tmdb_api_key %}text-success{% else %}text-muted{% endif %}">
+                                            <i class="bi bi-{% if settings.tmdb_api_key %}check{% else %}x{% endif %}"></i> Poster management
+                                        </li>
+                                        <li class="{% if settings.tmdb_api_key %}text-success{% else %}text-muted{% endif %}">
+                                            <i class="bi bi-{% if settings.tmdb_api_key %}check{% else %}x{% endif %}"></i> Bulk refresh
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Future Settings Sections -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Additional Settings</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-0">
+                    <i class="bi bi-construction"></i>
+                    More configuration options will be added here in future updates.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(fieldId + '_icon');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

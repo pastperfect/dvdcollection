@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count, Min, Max, Avg, Sum
-from .models import DVD
+from .models import DVD, AppSettings
 from .forms import DVDForm, DVDSearchForm, DVDFilterForm, BulkUploadForm
 from .services import TMDBService, YTSService
 import json
@@ -1034,3 +1034,25 @@ def refresh_progress(request):
         })
     
     return JsonResponse(progress_data)
+
+
+def admin_settings(request):
+    """Admin page for managing application settings."""
+    settings = AppSettings.get_settings()
+    
+    if request.method == 'POST':
+        tmdb_api_key = request.POST.get('tmdb_api_key', '').strip()
+        
+        # Update the settings
+        settings.tmdb_api_key = tmdb_api_key
+        settings.save()
+        
+        messages.success(request, 'Settings updated successfully.')
+        return redirect('tracker:admin_settings')
+    
+    context = {
+        'settings': settings,
+        'page_title': 'Admin Settings',
+        'page_icon': 'gear',
+    }
+    return render(request, 'tracker/admin_settings.html', context)

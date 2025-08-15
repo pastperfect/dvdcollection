@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/delete-dvd/', views.delete_dvd_api, name='delete_dvd_api'),
     path('api/refresh-all-tmdb/', views.refresh_all_tmdb, name='refresh_all_tmdb'),
     path('api/refresh-progress/', views.refresh_progress, name='refresh_progress'),
+    path('system-admin/', views.admin_settings, name='admin_settings'),
 ]

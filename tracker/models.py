@@ -2,6 +2,31 @@ from django.db import models
 from django.urls import reverse
 
 
+class AppSettings(models.Model):
+    """Model to store application settings."""
+    tmdb_api_key = models.CharField(
+        max_length=255, 
+        blank=True, 
+        help_text="TMDB API Key for fetching movie data"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Application Settings"
+        verbose_name_plural = "Application Settings"
+    
+    def __str__(self):
+        return "Application Settings"
+    
+    @classmethod
+    def get_settings(cls):
+        """Get or create the settings instance."""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings
+
+
 class DVD(models.Model):
     STATUS_CHOICES = [
         ('kept', 'Kept'),

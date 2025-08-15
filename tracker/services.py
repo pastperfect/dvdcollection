@@ -75,7 +75,16 @@ class TMDBService:
     """Service for interacting with The Movie Database API."""
     
     def __init__(self):
-        self.api_key = settings.TMDB_API_KEY
+        # Get API key from database settings
+        try:
+            from .models import AppSettings
+            app_settings = AppSettings.get_settings()
+            self.api_key = app_settings.tmdb_api_key
+        except Exception as e:
+            logger.warning(f"Could not load TMDB API key from database: {e}")
+            # Fallback to settings.py if database is not available
+            self.api_key = getattr(settings, 'TMDB_API_KEY', '')
+            
         self.base_url = settings.TMDB_BASE_URL
         self.image_base_url = settings.TMDB_IMAGE_BASE_URL
         
