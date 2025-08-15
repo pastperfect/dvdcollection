@@ -325,6 +325,7 @@ class TMDBService:
         if not movie_data:
             return {}
             
+        genres = ', '.join([genre['name'] for genre in movie_data.get('genres', [])])
         production_companies = ', '.join([pc['name'] for pc in movie_data.get('production_companies', [])])
         
         return {
