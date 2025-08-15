@@ -482,6 +482,37 @@ def fix_tmdb_match(request, pk):
     return render(request, 'tracker/fix_tmdb_match.html', {'dvd': dvd, 'search_form': search_form})
 
 
+def dvd_change_poster(request, pk):
+    """View to manage and change a DVD's poster."""
+    dvd = get_object_or_404(DVD, pk=pk)
+    tmdb_service = TMDBService()
+
+    if request.method == 'POST':
+        poster_path = request.POST.get('poster_path')
+        if poster_path:
+            # Delete the old poster file if it exists
+            if dvd.poster:
+                dvd.poster.delete(save=False)
+
+            # Download the new poster
+            full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+            tmdb_service.download_poster(dvd, full_poster_url)
+            
+            messages.success(request, 'Poster has been updated successfully.')
+            return redirect('tracker:dvd_detail', pk=dvd.pk)
+        else:
+            messages.error(request, 'No poster was selected.')
+
+    # GET request: Display available posters
+    posters = tmdb_service.get_movie_posters(dvd.tmdb_id)
+    
+    context = {
+        'dvd': dvd,
+        'posters': posters
+    }
+    return render(request, 'tracker/dvd_change_poster.html', context)
+
+
 @require_http_methods(["POST"])
 def fetch_imdb_id(request, pk):
     """AJAX endpoint to fetch IMDB ID for a movie."""

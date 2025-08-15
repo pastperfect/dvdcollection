@@ -227,6 +227,66 @@ class TMDBService:
         
         return None
     
+    def get_movie_images(self, movie_id):
+        """Get all images for a movie from TMDB."""
+        if not self.api_key:
+            logger.warning("TMDB API key not configured")
+            return None
+
+        cache_key = f"tmdb_images_{movie_id}"
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            return cached_result
+
+        url = f"{self.base_url}/movie/{movie_id}/images"
+        params = {
+            'api_key': self.api_key
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Cache for 24 hours
+            cache.set(cache_key, data, 86400)
+            return data
+
+        except requests.RequestException as e:
+            logger.error(f"TMDB images API error: {e}")
+            return None
+
+    def get_movie_posters(self, movie_id):
+        """Get a sorted list of posters for a movie."""
+        images_data = self.get_movie_images(movie_id)
+        if not images_data or 'posters' not in images_data:
+            return []
+
+        posters = images_data['posters']
+        
+        # Sort posters: English first, then no language, then others.
+        # Within each group, sort by vote average descending.
+        def sort_key(poster):
+            lang = poster.get('iso_639_1')
+            vote_avg = poster.get('vote_average', 0)
+            
+            if lang == 'en':
+                lang_priority = 0
+            elif lang is None:
+                lang_priority = 1
+            else:
+                lang_priority = 2
+                
+            return (lang_priority, -vote_avg)
+
+        sorted_posters = sorted(posters, key=sort_key)
+        
+        # Add full URL to each poster
+        for poster in sorted_posters:
+            poster['full_url'] = self.get_full_poster_url(poster.get('file_path'))
+            
+        return sorted_posters
+    
     def get_full_poster_url(self, poster_path):
         """Get the full URL for a poster image."""
         if not poster_path:

@@ -15,6 +15,7 @@ urlpatterns = [
     path('dvd/<int:pk>/edit/', views.dvd_edit, name='dvd_edit'),
     path('dvd/<int:pk>/delete/', views.dvd_delete, name='dvd_delete'),
     path('dvd/<int:pk>/fix-tmdb/', views.fix_tmdb_match, name='fix_tmdb_match'),
+    path('dvd/<int:pk>/change-poster/', views.dvd_change_poster, name='dvd_change_poster'),
     path('dvd/<int:pk>/fetch-imdb/', views.fetch_imdb_id, name='fetch_imdb_id'),
     path('tartan/', views.tartan_dvds, name='tartan_dvds'),
     path('box-sets/', views.box_sets, name='box_sets'),
