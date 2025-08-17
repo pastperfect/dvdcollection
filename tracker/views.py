@@ -1,14 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count, Min, Max, Avg, Sum
 from .models import DVD, AppSettings
 from .forms import DVDForm, DVDSearchForm, DVDFilterForm, BulkUploadForm
 from .services import TMDBService, YTSService
 import json
+import csv
 import logging
+from datetime import date
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -1071,3 +1073,51 @@ def admin_settings(request):
         'page_icon': 'gear',
     }
     return render(request, 'tracker/admin_settings.html', context)
+
+
+def export_non_kept_dvds(request):
+    """Export DVDs that are not in 'Kept' status to CSV."""
+    # Get all DVDs that are not kept
+    non_kept_dvds = DVD.objects.exclude(status='kept')
+    
+    # Generate filename with current date
+    current_date = date.today().strftime('%Y-%m-%d')
+    filename = f"MovieExport_{current_date}.csv"
+    
+    # Create the HttpResponse object with the appropriate CSV header
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+    
+    writer = csv.writer(response)
+    writer.writerow(['Movie Name', 'Release Year', 'Status', 'Media Type', '720p Download Link', '1080p Download Link'])
+    
+    # Initialize YTS service for getting torrent links
+    yts_service = YTSService()
+    
+    for dvd in non_kept_dvds:
+        # Get torrent information if IMDB ID is available
+        link_720p = ''
+        link_1080p = ''
+        
+        if dvd.imdb_id:
+            torrents = yts_service.get_quality_torrents(dvd.imdb_id, ['720p', '1080p'])
+            
+            # Find specific quality links
+            for torrent in torrents:
+                if torrent.get('quality') == '720p':
+                    link_720p = torrent.get('url', '')
+                elif torrent.get('quality') == '1080p':
+                    link_1080p = torrent.get('url', '')
+        
+        writer.writerow([
+            dvd.name,
+            dvd.release_year or '',
+            dvd.get_status_display(),
+            dvd.get_media_type_display(),
+            link_720p,
+            link_1080p
+        ])
+    
+    return response

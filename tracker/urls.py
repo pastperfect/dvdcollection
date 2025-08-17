@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/refresh-all-tmdb/', views.refresh_all_tmdb, name='refresh_all_tmdb'),
     path('api/refresh-progress/', views.refresh_progress, name='refresh_progress'),
     path('system-admin/', views.admin_settings, name='admin_settings'),
+    path('system-admin/export-non-kept/', views.export_non_kept_dvds, name='export_non_kept_dvds'),
 ]
