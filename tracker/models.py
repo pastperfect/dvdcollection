@@ -28,6 +28,7 @@ class AppSettings(models.Model):
 
 
 class DVD(models.Model):
+    is_downloaded = models.BooleanField(default=False, help_text='Has this DVD been downloaded?')
     STATUS_CHOICES = [
         ('kept', 'Kept'),
         ('disposed', 'Disposed'),

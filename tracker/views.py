@@ -194,9 +194,11 @@ def dvd_add(request):
             # Manual form submission
             dvd_form = DVDForm(request.POST)
             if dvd_form.is_valid():
-                dvd = dvd_form.save()
+                dvd = dvd_form.save(commit=False)
+                dvd.is_downloaded = False
+                dvd.save()
                 messages.success(request, f'"{dvd.name}" has been added to your collection.')
-                return redirect('tracker:dvd_detail', pk=dvd.pk)
+                return redirect('tracker:dvd_add')
     return render(request, 'tracker/dvd_add.html', {'search_form': search_form, 'last_storage_box': last_storage_box})
 
 
@@ -238,13 +240,14 @@ def dvd_add_from_tmdb(request, tmdb_id):
             poster_path = tmdb_data.pop('poster_path', None)
             for key, value in tmdb_data.items():
                 setattr(dvd, key, value)
+            dvd.is_downloaded = False
             dvd.save()
             # Download poster
             if poster_path:
                 full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                 tmdb_service.download_poster(dvd, full_poster_url)
             messages.success(request, f'"{dvd.name}" has been added to your collection.')
-            return redirect('tracker:dvd_detail', pk=dvd.pk)
+            return redirect('tracker:dvd_add')
     else:
         # Pre-populate form with TMDB data and last storage box
         initial_data = tmdb_service.format_movie_data(movie_data)
