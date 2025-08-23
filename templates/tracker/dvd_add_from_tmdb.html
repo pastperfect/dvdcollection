@@ -199,7 +199,7 @@
                                            name="storage_box" 
                                            class="form-control" 
                                            placeholder="Enter storage box location..." 
-                                           value="{{ form.storage_box.value|default:'' }}"
+                                           value="{{ form.storage_box.value|default:last_storage_box|default:'' }}"
                                            autocomplete="off">
                                     <div id="storage-box-autocomplete" class="autocomplete-dropdown"></div>
                                 </div>

@@ -160,7 +160,14 @@ def dvd_detail(request, pk):
 def dvd_add(request):
     """Add a new DVD - first step is to search TMDB."""
     search_form = DVDSearchForm()
-    
+    # Fetch the last used storage box for a kept DVD
+    last_storage_box = (
+        DVD.objects.filter(status='kept')
+        .exclude(storage_box='')
+        .order_by('-created_at')
+        .values_list('storage_box', flat=True)
+        .first()
+    )
     if request.method == 'POST':
         if 'search' in request.POST:
             search_form = DVDSearchForm(request.POST)
@@ -168,7 +175,6 @@ def dvd_add(request):
                 query = search_form.cleaned_data['query']
                 tmdb_service = TMDBService()
                 search_results = tmdb_service.search_movies(query)
-                
                 # Pre-process poster URLs for template
                 results = search_results.get('results', [])
                 for movie in results:
@@ -176,12 +182,12 @@ def dvd_add(request):
                         movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
                     else:
                         movie['poster_url'] = None
-                
                 context = {
                     'search_form': search_form,
                     'search_results': results,
                     'query': query,
                     'tmdb_service': tmdb_service,
+                    'last_storage_box': last_storage_box,
                 }
                 return render(request, 'tracker/dvd_search.html', context)
         else:
@@ -191,8 +197,7 @@ def dvd_add(request):
                 dvd = dvd_form.save()
                 messages.success(request, f'"{dvd.name}" has been added to your collection.')
                 return redirect('tracker:dvd_detail', pk=dvd.pk)
-    
-    return render(request, 'tracker/dvd_add.html', {'search_form': search_form})
+    return render(request, 'tracker/dvd_add.html', {'search_form': search_form, 'last_storage_box': last_storage_box})
 
 
 def dvd_add_from_tmdb(request, tmdb_id):
@@ -216,36 +221,41 @@ def dvd_add_from_tmdb(request, tmdb_id):
     else:
         movie_data['poster_url'] = None
     
+    # Fetch the last used storage box for a kept DVD
+    last_storage_box = (
+        DVD.objects.filter(status='kept')
+        .exclude(storage_box='')
+        .order_by('-created_at')
+        .values_list('storage_box', flat=True)
+        .first()
+    )
     if request.method == 'POST':
         form = DVDForm(request.POST)
         if form.is_valid():
             dvd = form.save(commit=False)
             # Fill in TMDB data
             tmdb_data = tmdb_service.format_movie_data(movie_data)
-            
             poster_path = tmdb_data.pop('poster_path', None)
-
             for key, value in tmdb_data.items():
                 setattr(dvd, key, value)
-            
             dvd.save()
-
             # Download poster
             if poster_path:
                 full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                 tmdb_service.download_poster(dvd, full_poster_url)
-            
             messages.success(request, f'"{dvd.name}" has been added to your collection.')
             return redirect('tracker:dvd_detail', pk=dvd.pk)
     else:
-        # Pre-populate form with TMDB data
+        # Pre-populate form with TMDB data and last storage box
         initial_data = tmdb_service.format_movie_data(movie_data)
+        if last_storage_box:
+            initial_data['storage_box'] = last_storage_box
         form = DVDForm(initial=initial_data)
-    
     context = {
         'form': form,
         'movie_data': movie_data,
         'tmdb_service': tmdb_service,
+        'last_storage_box': last_storage_box,
     }
     return render(request, 'tracker/dvd_add_from_tmdb.html', context)
 
