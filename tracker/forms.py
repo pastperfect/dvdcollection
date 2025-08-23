@@ -4,16 +4,54 @@ import requests
 from django.conf import settings
 
 
+
 class DVDSearchForm(forms.Form):
-    """Form for searching movies in TMDB."""
+    """Form for searching movies in TMDB by title or TMDB ID."""
+    SEARCH_TYPE_CHOICES = [
+        ('title', 'Title'),
+        ('tmdb_id', 'TMDB ID'),
+    ]
+    search_type = forms.ChoiceField(
+        choices=SEARCH_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_search_type'}),
+        initial='title',
+        required=False
+    )
     query = forms.CharField(
         max_length=255,
+        required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Search for a movie...',
-            'autocomplete': 'off'
+            'autocomplete': 'off',
+            'id': 'id_query',
         })
     )
+    tmdb_id = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter TMDB ID (e.g. 603)',
+            'autocomplete': 'off',
+            'id': 'id_tmdb_id',
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        search_type = cleaned_data.get('search_type', 'title')
+        query = cleaned_data.get('query', '').strip()
+        tmdb_id = cleaned_data.get('tmdb_id', '').strip()
+        if search_type == 'title':
+            if not query:
+                self.add_error('query', 'Please enter a movie title to search.')
+        elif search_type == 'tmdb_id':
+            if not tmdb_id:
+                self.add_error('tmdb_id', 'Please enter a TMDB ID to search.')
+            elif not tmdb_id.isdigit():
+                self.add_error('tmdb_id', 'TMDB ID must be a number.')
+        return cleaned_data
 
 
 class DVDForm(forms.ModelForm):

@@ -436,25 +436,40 @@ def bulk_upload(request):
 
 def fix_tmdb_match(request, pk):
     """Fix an incorrect TMDB match for a DVD."""
+
     dvd = get_object_or_404(DVD, pk=pk)
     search_form = DVDSearchForm()
-    
+
     if request.method == 'POST':
         if 'search' in request.POST:
             search_form = DVDSearchForm(request.POST)
             if search_form.is_valid():
-                query = search_form.cleaned_data['query']
+                search_type = search_form.cleaned_data.get('search_type', 'title')
                 tmdb_service = TMDBService()
-                search_results = tmdb_service.search_movies(query)
-                
-                # Pre-process poster URLs for template
-                results = search_results.get('results', [])
-                for movie in results:
-                    if movie.get('poster_path'):
-                        movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
+                results = []
+                query = ''
+                if search_type == 'title':
+                    query = search_form.cleaned_data['query']
+                    search_results = tmdb_service.search_movies(query)
+                    results = search_results.get('results', [])
+                    for movie in results:
+                        if movie.get('poster_path'):
+                            movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
+                        else:
+                            movie['poster_url'] = None
+                elif search_type == 'tmdb_id':
+                    tmdb_id = search_form.cleaned_data['tmdb_id']
+                    movie = tmdb_service.get_movie_details(tmdb_id)
+                    if movie:
+                        if movie.get('poster_path'):
+                            movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
+                        else:
+                            movie['poster_url'] = None
+                        results = [movie]
+                        query = tmdb_id
                     else:
-                        movie['poster_url'] = None
-                
+                        results = []
+                        query = tmdb_id
                 context = {
                     'dvd': dvd,
                     'search_form': search_form,
@@ -469,13 +484,10 @@ def fix_tmdb_match(request, pk):
             if tmdb_id:
                 tmdb_service = TMDBService()
                 movie_data = tmdb_service.get_movie_details(tmdb_id)
-                
                 if movie_data:
                     # Update DVD with new TMDB data
                     tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
-                    
                     poster_path = tmdb_formatted_data.pop('poster_path', None)
-
                     # Keep the original user settings (status, media_type)
                     dvd.name = tmdb_formatted_data['name']
                     dvd.overview = tmdb_formatted_data['overview']
@@ -486,18 +498,15 @@ def fix_tmdb_match(request, pk):
                     dvd.imdb_id = tmdb_formatted_data['imdb_id']
                     dvd.rating = tmdb_formatted_data['rating']
                     dvd.save()
-
                     if poster_path:
                         full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                         tmdb_service.download_poster(dvd, full_poster_url)
-                    
                     messages.success(request, f'Successfully updated "{dvd.name}" with correct TMDB data.')
                     return redirect('tracker:dvd_detail', pk=dvd.pk)
                 else:
                     messages.error(request, 'Could not fetch movie details from TMDB.')
             else:
                 messages.error(request, 'No movie selected.')
-    
     return render(request, 'tracker/fix_tmdb_match.html', {'dvd': dvd, 'search_form': search_form})
 
 
