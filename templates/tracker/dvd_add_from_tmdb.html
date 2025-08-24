@@ -208,6 +208,26 @@
                                     <div class="text-danger">{{ form.storage_box.errors }}</div>
                                 {% endif %}
                             </div>
+                            
+                            <!-- Duplicate Tracking -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.copy_number.id_for_label }}" class="form-label">Copy Number</label>
+                                    {{ form.copy_number }}
+                                    <div class="form-text">Set to 2 or higher if you already have this movie</div>
+                                    {% if form.copy_number.errors %}
+                                        <div class="text-danger">{{ form.copy_number.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.duplicate_notes.id_for_label }}" class="form-label">Duplicate Notes</label>
+                                    {{ form.duplicate_notes }}
+                                    <div class="form-text">Optional notes about this copy</div>
+                                    {% if form.duplicate_notes.errors %}
+                                        <div class="text-danger">{{ form.duplicate_notes.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </div>
                     

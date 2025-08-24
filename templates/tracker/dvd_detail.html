@@ -190,6 +190,15 @@
                             <span class="badge bg-light text-dark">N/A</span>
                         {% endif %}
                     </div>
+                    {% if dvd.copy_number > 1 or dvd.duplicate_notes %}
+                    <div class="col-sm-6 mb-2">
+                        <strong>Copy Info:</strong>
+                        <span class="badge bg-secondary">Copy #{{ dvd.copy_number }}</span>
+                        {% if dvd.duplicate_notes %}
+                            <small class="text-muted d-block">{{ dvd.duplicate_notes }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     <div class="col-sm-6 mb-2">
                         <strong>Media Type:</strong>
                         <span class="badge bg-{{ dvd.get_media_type_display_class }}">
@@ -237,6 +246,46 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Other Copies -->
+        {% if dvd.has_duplicates %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-files"></i> Other Copies of This Movie</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for other_copy in dvd.get_other_copies %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <a href="{% url 'tracker:dvd_detail' pk=other_copy.pk %}" class="text-decoration-none">
+                                        Copy #{{ other_copy.copy_number }}
+                                    </a>
+                                </h6>
+                                {% if other_copy.duplicate_notes %}
+                                    <p class="card-text text-muted">{{ other_copy.duplicate_notes }}</p>
+                                {% endif %}
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <span class="badge bg-{{ other_copy.get_status_display_class }}">
+                                        {{ other_copy.get_status_display }}
+                                    </span>
+                                    <span class="badge bg-{{ other_copy.get_media_type_display_class }}">
+                                        {{ other_copy.get_media_type_display }}
+                                    </span>
+                                    {% if other_copy.storage_box %}
+                                        <span class="badge bg-light text-dark">{{ other_copy.storage_box }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <!-- Torrent Downloads -->
         {% if dvd.imdb_id %}

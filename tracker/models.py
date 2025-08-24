@@ -53,6 +53,10 @@ class DVD(models.Model):
     is_unwatched = models.BooleanField(default=False, help_text='Have you not watched this movie yet?')
     storage_box = models.CharField(max_length=100, blank=True, help_text='Storage box location (for kept items)')
     
+    # Duplicate tracking
+    copy_number = models.PositiveSmallIntegerField(default=1, help_text='Copy number (1, 2, 3, etc.) for duplicate movies')
+    duplicate_notes = models.CharField(max_length=255, blank=True, help_text='Notes about this copy (e.g., "Director\'s Cut", "Region 2", "Special Edition")')
+    
     # TMDB data
     tmdb_id = models.IntegerField(null=True, blank=True)
     imdb_id = models.CharField(max_length=20, blank=True, help_text="IMDB ID (e.g., tt1234567)")
@@ -123,4 +127,43 @@ class DVD(models.Model):
             badges.append({'text': 'Unopened', 'class': 'bg-success'})
         if self.is_unwatched:
             badges.append({'text': 'Unwatched', 'class': 'bg-warning'})
+        if self.copy_number > 1:
+            badges.append({'text': f'Copy #{self.copy_number}', 'class': 'bg-secondary'})
         return badges
+    
+    def get_duplicate_copies(self):
+        """Return all copies of this movie (including this one)."""
+        if not self.tmdb_id:
+            # If no TMDB ID, try to match by name and release year
+            return DVD.objects.filter(
+                name__iexact=self.name,
+                release_year=self.release_year
+            ).order_by('copy_number')
+        else:
+            # Match by TMDB ID (more reliable)
+            return DVD.objects.filter(tmdb_id=self.tmdb_id).order_by('copy_number')
+    
+    def get_other_copies(self):
+        """Return other copies of this movie (excluding this one)."""
+        return self.get_duplicate_copies().exclude(pk=self.pk)
+    
+    def has_duplicates(self):
+        """Return True if there are other copies of this movie."""
+        return self.get_other_copies().exists()
+    
+    def get_next_copy_number(self):
+        """Get the next available copy number for this movie."""
+        existing_copies = self.get_duplicate_copies()
+        if not existing_copies.exists():
+            return 1
+        return existing_copies.aggregate(max_copy=models.Max('copy_number'))['max_copy'] + 1
+    
+    def get_copy_display(self):
+        """Return a display string for this copy."""
+        if self.copy_number == 1 and not self.has_duplicates():
+            return ""  # Don't show copy number if it's the only copy
+        
+        copy_text = f"Copy #{self.copy_number}"
+        if self.duplicate_notes:
+            copy_text += f" ({self.duplicate_notes})"
+        return copy_text

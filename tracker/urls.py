@@ -18,6 +18,7 @@ urlpatterns = [
     path('dvd/<int:pk>/change-poster/', views.dvd_change_poster, name='dvd_change_poster'),
     path('dvd/<int:pk>/fetch-imdb/', views.fetch_imdb_id, name='fetch_imdb_id'),
     path('tartan/', views.tartan_dvds, name='tartan_dvds'),
+    path('duplicates/', views.duplicates, name='duplicates'),
     path('box-sets/', views.box_sets, name='box_sets'),
     path('box-sets/<str:box_set_name>/', views.box_set_detail, name='box_set_detail'),
     path('api/search/', views.search_tmdb_ajax, name='search_tmdb_ajax'),

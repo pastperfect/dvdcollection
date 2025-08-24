@@ -61,7 +61,8 @@ class DVDForm(forms.ModelForm):
         model = DVD
         fields = [
             'tmdb_id', 'name', 'status', 'media_type', 'overview', 'imdb_id',
-            'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box'
+            'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box',
+            'copy_number', 'duplicate_notes'
         ]
         widgets = {
             'tmdb_id': forms.HiddenInput(),
@@ -108,6 +109,17 @@ class DVDForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter storage box location...',
                 'id': 'id_storage_box'
+            }),
+            'copy_number': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'max': '99',
+                'placeholder': '1'
+            }),
+            'duplicate_notes': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., "Director\'s Cut", "Region 2", "Special Edition"',
+                'maxlength': '255'
             }),
         }
     

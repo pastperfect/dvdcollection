@@ -216,11 +216,9 @@ def dvd_add_from_tmdb(request, tmdb_id):
             messages.error(request, 'Could not fetch movie details from TMDB.')
             return redirect('tracker:dvd_add')
         
-        # Check if we already have this movie
+        # Check if we already have this movie - but allow adding duplicates
         existing_dvd = DVD.objects.filter(tmdb_id=tmdb_id).first()
-        if existing_dvd:
-            messages.warning(request, f'"{existing_dvd.name}" is already in your collection.')
-            return redirect('tracker:dvd_detail', pk=existing_dvd.pk)
+        # We'll handle this in the form initialization below instead of redirecting
     
     except Exception as e:
         logger.error(f"Error in dvd_add_from_tmdb for TMDB ID {tmdb_id}: {e}")
@@ -269,6 +267,18 @@ def dvd_add_from_tmdb(request, tmdb_id):
             initial_data.setdefault('media_type', 'physical')
             if last_storage_box:
                 initial_data['storage_box'] = last_storage_box
+            
+            # Check for existing copies and suggest next copy number
+            existing_copies = DVD.objects.filter(tmdb_id=tmdb_id)
+            if existing_copies.exists():
+                next_copy_number = existing_copies.aggregate(
+                    max_copy=Max('copy_number')
+                )['max_copy'] + 1
+                initial_data['copy_number'] = next_copy_number
+                # Add a note about existing copies to the form
+                existing_copy_info = existing_copies.first()
+                messages.info(request, f'You already have {existing_copies.count()} copy(ies) of "{existing_copy_info.name}". This will be copy #{next_copy_number}.')
+            
             form = DVDForm(initial=initial_data)
         
         context = {
@@ -620,6 +630,78 @@ def tartan_dvds(request):
         'add_url': 'tracker:dvd_add',
     }
     return render(request, 'tracker/tartan_dvds.html', context)
+
+
+def duplicates(request):
+    """Display all movies that have duplicate copies."""
+    # Get movies with multiple copies grouped by tmdb_id or name/year
+    duplicates_dict = {}
+    
+    # First, group by TMDB ID for movies that have it
+    tmdb_duplicates = DVD.objects.filter(tmdb_id__isnull=False).values('tmdb_id').annotate(
+        count=Count('id')
+    ).filter(count__gt=1)
+    
+    for duplicate_group in tmdb_duplicates:
+        tmdb_id = duplicate_group['tmdb_id']
+        copies = DVD.objects.filter(tmdb_id=tmdb_id).order_by('copy_number')
+        if copies.exists():
+            movie_key = f"tmdb_{tmdb_id}"
+            duplicates_dict[movie_key] = {
+                'title': copies.first().name,
+                'copies': list(copies),
+                'total_copies': copies.count()
+            }
+    
+    # Then, group by name and release year for movies without TMDB ID
+    name_year_duplicates = DVD.objects.filter(tmdb_id__isnull=True).values(
+        'name', 'release_year'
+    ).annotate(
+        count=Count('id')
+    ).filter(count__gt=1)
+    
+    for duplicate_group in name_year_duplicates:
+        name = duplicate_group['name']
+        year = duplicate_group['release_year']
+        copies = DVD.objects.filter(
+            name=name, 
+            release_year=year, 
+            tmdb_id__isnull=True
+        ).order_by('copy_number')
+        if copies.exists():
+            movie_key = f"name_{name}_{year}"
+            duplicates_dict[movie_key] = {
+                'title': name,
+                'copies': list(copies),
+                'total_copies': copies.count()
+            }
+    
+    # Apply search if provided
+    search = request.GET.get('search', '')
+    if search:
+        filtered_duplicates = {}
+        for key, duplicate_info in duplicates_dict.items():
+            if search.lower() in duplicate_info['title'].lower():
+                filtered_duplicates[key] = duplicate_info
+        duplicates_dict = filtered_duplicates
+    
+    # Convert to list for template
+    duplicates_list = list(duplicates_dict.values())
+    
+    # Pagination
+    paginator = Paginator(duplicates_list, 10)  # 10 movies per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': len(duplicates_list),
+        'search': search,
+        'page_title': 'Duplicate Movies',
+        'page_icon': 'files',
+        'empty_message': 'No duplicate movies found in your collection.',
+    }
+    return render(request, 'tracker/duplicates.html', context)
 
 
 def box_sets(request):

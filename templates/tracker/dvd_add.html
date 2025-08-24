@@ -143,6 +143,32 @@
                                     <div id="manual-storage-box-autocomplete" class="autocomplete-dropdown"></div>
                                 </div>
                             </div>
+                            
+                            <!-- Duplicate Tracking -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="manual_copy_number" class="form-label">Copy Number</label>
+                                    <input type="number" 
+                                           id="manual_copy_number" 
+                                           name="copy_number" 
+                                           class="form-control" 
+                                           min="1" 
+                                           max="99" 
+                                           value="1" 
+                                           placeholder="1">
+                                    <div class="form-text">Set to 2 or higher if you already have this movie</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="manual_duplicate_notes" class="form-label">Duplicate Notes</label>
+                                    <input type="text" 
+                                           id="manual_duplicate_notes" 
+                                           name="duplicate_notes" 
+                                           class="form-control" 
+                                           placeholder="e.g., 'Director's Cut', 'Region 2', 'Special Edition'" 
+                                           maxlength="255">
+                                    <div class="form-text">Optional notes about this copy</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
