@@ -204,19 +204,29 @@ def dvd_add(request):
 
 def dvd_add_from_tmdb(request, tmdb_id):
     """Add a DVD from TMDB movie data."""
-    tmdb_service = TMDBService()
-    movie_data = tmdb_service.get_movie_details(tmdb_id)
+    import logging
+    logger = logging.getLogger(__name__)
     
-    if not movie_data:
-        messages.error(request, 'Could not fetch movie details from TMDB.')
+    try:
+        tmdb_service = TMDBService()
+        movie_data = tmdb_service.get_movie_details(tmdb_id)
+        
+        if not movie_data:
+            logger.error(f"Could not fetch movie details from TMDB for ID {tmdb_id}")
+            messages.error(request, 'Could not fetch movie details from TMDB.')
+            return redirect('tracker:dvd_add')
+        
+        # Check if we already have this movie
+        existing_dvd = DVD.objects.filter(tmdb_id=tmdb_id).first()
+        if existing_dvd:
+            messages.warning(request, f'"{existing_dvd.name}" is already in your collection.')
+            return redirect('tracker:dvd_detail', pk=existing_dvd.pk)
+    
+    except Exception as e:
+        logger.error(f"Error in dvd_add_from_tmdb for TMDB ID {tmdb_id}: {e}")
+        messages.error(request, 'An error occurred while fetching movie details.')
         return redirect('tracker:dvd_add')
-    
-    # Check if we already have this movie
-    existing_dvd = DVD.objects.filter(tmdb_id=tmdb_id).first()
-    if existing_dvd:
-        messages.warning(request, f'"{existing_dvd.name}" is already in your collection.')
-        return redirect('tracker:dvd_detail', pk=existing_dvd.pk)
-    
+
     # Pre-process poster URL for template
     if movie_data.get('poster_path'):
         movie_data['poster_url'] = tmdb_service.get_full_poster_url(movie_data['poster_path'])
@@ -231,38 +241,48 @@ def dvd_add_from_tmdb(request, tmdb_id):
         .values_list('storage_box', flat=True)
         .first()
     )
-    if request.method == 'POST':
-        form = DVDForm(request.POST)
-        if form.is_valid():
-            dvd = form.save(commit=False)
-            # Fill in TMDB data
-            tmdb_data = tmdb_service.format_movie_data(movie_data)
-            poster_path = tmdb_data.pop('poster_path', None)
-            for key, value in tmdb_data.items():
-                setattr(dvd, key, value)
-            dvd.is_downloaded = False
-            dvd.save()
-            # Download poster
-            if poster_path:
-                full_poster_url = tmdb_service.get_full_poster_url(poster_path)
-                tmdb_service.download_poster(dvd, full_poster_url)
-            messages.success(request, f'"{dvd.name}" has been added to your collection.')
-            return redirect('tracker:dvd_add')
-    else:
-        # Pre-populate form with TMDB data and last storage box
-        initial_data = tmdb_service.format_movie_data(movie_data)
-        if last_storage_box:
-            initial_data['storage_box'] = last_storage_box
-        form = DVDForm(initial=initial_data)
-    context = {
-        'form': form,
-        'movie_data': movie_data,
-        'tmdb_service': tmdb_service,
-        'last_storage_box': last_storage_box,
-    }
-    return render(request, 'tracker/dvd_add_from_tmdb.html', context)
-
-
+    
+    try:
+        if request.method == 'POST':
+            form = DVDForm(request.POST)
+            if form.is_valid():
+                dvd = form.save(commit=False)
+                # Fill in TMDB data (excluding tmdb_id since it's already set by the form)
+                tmdb_data = tmdb_service.format_movie_data(movie_data)
+                poster_path = tmdb_data.pop('poster_path', None)
+                tmdb_id = tmdb_data.pop('tmdb_id', None)  # Remove tmdb_id to avoid overriding form value
+                for key, value in tmdb_data.items():
+                    setattr(dvd, key, value)
+                dvd.is_downloaded = False
+                dvd.save()
+                # Download poster
+                if poster_path:
+                    full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                    tmdb_service.download_poster(dvd, full_poster_url)
+                messages.success(request, f'"{dvd.name}" has been added to your collection.')
+                return redirect('tracker:dvd_add')
+        else:
+            # Pre-populate form with TMDB data and last storage box
+            initial_data = tmdb_service.format_movie_data(movie_data)
+            # Add default values for required fields
+            initial_data.setdefault('status', 'kept')
+            initial_data.setdefault('media_type', 'physical')
+            if last_storage_box:
+                initial_data['storage_box'] = last_storage_box
+            form = DVDForm(initial=initial_data)
+        
+        context = {
+            'form': form,
+            'movie_data': movie_data,
+            'tmdb_service': tmdb_service,
+            'last_storage_box': last_storage_box,
+        }
+        return render(request, 'tracker/dvd_add_from_tmdb.html', context)
+    
+    except Exception as e:
+        logger.error(f"Error in dvd_add_from_tmdb form processing for TMDB ID {tmdb_id}: {e}")
+        messages.error(request, 'An error occurred while processing the form.')
+        return redirect('tracker:dvd_add')
 def dvd_edit(request, pk):
     """Edit an existing DVD."""
     dvd = get_object_or_404(DVD, pk=pk)

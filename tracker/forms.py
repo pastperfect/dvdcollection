@@ -60,10 +60,11 @@ class DVDForm(forms.ModelForm):
     class Meta:
         model = DVD
         fields = [
-            'name', 'status', 'media_type', 'overview', 'imdb_id',
+            'tmdb_id', 'name', 'status', 'media_type', 'overview', 'imdb_id',
             'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box'
         ]
         widgets = {
+            'tmdb_id': forms.HiddenInput(),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Movie title'
