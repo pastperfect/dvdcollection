@@ -26,7 +26,7 @@ class DVDModelTest(TestCase):
         self.assertEqual(self.dvd.get_status_display_class(), "success")
         
         self.dvd.status = "disposed"
-        self.assertEqual(self.dvd.get_status_display_class(), "secondary")
+        self.assertEqual(self.dvd.get_status_display_class(), "danger")
 
 
 class DVDViewTest(TestCase):
