@@ -105,20 +105,23 @@
                             </div>
                         {% endif %}
                         
-                        <!-- Status Badge -->
-                        <span class="badge bg-{{ dvd.get_status_display_class }} status-badge">
-                            {{ dvd.get_status_display }}
-                        </span>
-                        
-                        <!-- Media Type Badge -->
-                        <span class="badge bg-{{ dvd.get_media_type_display_class }} media-type-badge">
-                            {{ dvd.get_media_type_display }}
-                        </span>
-                        
-                        <!-- Special Feature Badges -->
-                        {% for badge in dvd.get_special_features_badges %}
-                            <span class="badge {{ badge.class }} special-badge">{{ badge.text }}</span>
-                        {% endfor %}
+                        <!-- All badges at bottom -->
+                        <div class="bottom-badges">
+                            <!-- Status Badge -->
+                            <span class="badge bg-{{ dvd.get_status_display_class }}">
+                                {{ dvd.get_status_display }}
+                            </span>
+                            
+                            <!-- Media Type Badge -->
+                            <span class="badge bg-{{ dvd.get_media_type_display_class }}">
+                                {{ dvd.get_media_type_display }}
+                            </span>
+                            
+                            <!-- Special Feature Badges -->
+                            {% for badge in dvd.get_special_features_badges %}
+                                <span class="badge {{ badge.class }}">{{ badge.text }}</span>
+                            {% endfor %}
+                        </div>
                     </div>
                     
                     <div class="card-body d-flex flex-column">

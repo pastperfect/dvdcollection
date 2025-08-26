@@ -965,3 +965,20 @@ footer {
     line-height: 1.4;
     max-height: calc(1.4em * 3); /* Fallback for non-webkit browsers */
 }
+
+.bottom-badges {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    z-index: 10;
+    justify-content: flex-start;
+}
+
+.bottom-badges .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
