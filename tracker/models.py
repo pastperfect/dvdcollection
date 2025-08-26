@@ -87,6 +87,13 @@ class DVD(models.Model):
     def get_absolute_url(self):
         return reverse('tracker:dvd_detail', kwargs={'pk': self.pk})
     
+    @property
+    def profit(self):
+        """Calculate profit as revenue minus budget."""
+        if self.revenue is not None and self.budget is not None:
+            return self.revenue - self.budget
+        return None
+    
     def get_genres_list(self):
         """Return genres as a list."""
         if self.genres:

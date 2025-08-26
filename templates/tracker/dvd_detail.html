@@ -100,26 +100,22 @@
                             {% if dvd.budget %}
                                 <div class="info-item">
                                     <span class="info-label">Budget:</span>
-                                    <span class="info-value">${{ dvd.budget|floatformat:0 }}</span>
+                                    <span class="info-value">$<span class="format-number">{{ dvd.budget|floatformat:0 }}</span></span>
                                 </div>
                             {% endif %}
 
                             {% if dvd.revenue %}
                                 <div class="info-item">
                                     <span class="info-label">Revenue:</span>
-                                    <span class="info-value">${{ dvd.revenue|floatformat:0 }}</span>
+                                    <span class="info-value">$<span class="format-number">{{ dvd.revenue|floatformat:0 }}</span></span>
                                 </div>
                             {% endif %}
 
-                            {% if dvd.user_score %}
+                            {% if dvd.profit %}
                                 <div class="info-item">
                                     <span class="info-label">Profit:</span>
-                                    <span class="info-value {% if dvd.revenue and dvd.budget %}{% if dvd.revenue|floatformat:0|add:'-'|add:dvd.budget|floatformat:0|slice:'-1' == '-' %}text-danger{% else %}text-success{% endif %}{% endif %}">
-                                        {% if dvd.revenue and dvd.budget %}
-                                            ${{ dvd.revenue|floatformat:0|add:'-'|add:dvd.budget|floatformat:0 }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
+                                    <span class="info-value {% if dvd.profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        $<span class="format-number">{{ dvd.profit|floatformat:0 }}</span>
                                     </span>
                                 </div>
                             {% endif %}
@@ -381,6 +377,17 @@ function fetchImdbId(dvdId) {
         button.innerHTML = '<i class="bi bi-cloud-download"></i> Auto-fetch IMDB ID';
     });
 }
+
+// Format numbers with commas
+document.addEventListener('DOMContentLoaded', function() {
+    const numberElements = document.querySelectorAll('.format-number');
+    numberElements.forEach(element => {
+        const number = parseInt(element.textContent.replace(/[^\d]/g, ''));
+        if (!isNaN(number)) {
+            element.textContent = number.toLocaleString();
+        }
+    });
+});
 </script>
 
 <!-- Add CSRF token for AJAX requests -->
