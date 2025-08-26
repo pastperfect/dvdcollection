@@ -124,18 +124,22 @@
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title">{{ dvd.name }}</h6>
                         
-                        <div class="text-muted small mb-2">
-                            {% if dvd.release_year %}
-                                <i class="bi bi-calendar"></i> {{ dvd.release_year }}
-                            {% endif %}
-                            {% if dvd.runtime %}
-                                {% if dvd.release_year %} • {% endif %}
-                                <i class="bi bi-clock"></i> {{ dvd.runtime }}min
-                            {% endif %}
-                            {% if dvd.rating %}
-                                {% if dvd.release_year or dvd.runtime %} • {% endif %}
-                                <i class="bi bi-star-fill text-warning"></i> {{ dvd.rating }}
-                            {% endif %}
+                        <div class="text-muted small mb-2 d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if dvd.release_year %}
+                                    <i class="bi bi-calendar"></i> {{ dvd.release_year }}
+                                {% endif %}
+                            </span>
+                            <span>
+                                {% if dvd.runtime %}
+                                    <i class="bi bi-clock"></i> {{ dvd.runtime }}min
+                                {% endif %}
+                            </span>
+                            <span>
+                                {% if dvd.rating %}
+                                    <i class="bi bi-star-fill text-warning"></i> {{ dvd.rating }}
+                                {% endif %}
+                            </span>
                         </div>
                         
                         {% if dvd.genres %}
