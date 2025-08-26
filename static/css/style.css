@@ -23,6 +23,18 @@
     border-color: #4d7b9e;
 }
 
+.btn-primary {
+    background-color: #4d7b9e;
+    color: white;
+    border-color: #4d7b9e;
+}
+
+.btn-primary:hover {
+    background-color: #283f50;
+    color: white;
+    border-color: #283f50;
+}
+
 /* Warning */
 .border-warning {
     border-color: #485f5a !important;
