@@ -955,3 +955,13 @@ footer {
 .box-set-posters .col-6.offset-3 {
     max-width: 50%;
 }
+
+
+.card-text-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    max-height: calc(1.4em * 3); /* Fallback for non-webkit browsers */
+}
