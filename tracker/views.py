@@ -172,24 +172,46 @@ def dvd_add(request):
         if 'search' in request.POST:
             search_form = DVDSearchForm(request.POST)
             if search_form.is_valid():
-                query = search_form.cleaned_data['query']
+                query = search_form.cleaned_data['query'].strip()
                 tmdb_service = TMDBService()
-                search_results = tmdb_service.search_movies(query)
-                # Pre-process poster URLs for template
-                results = search_results.get('results', [])
-                for movie in results:
-                    if movie.get('poster_path'):
-                        movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
-                    else:
-                        movie['poster_url'] = None
-                context = {
-                    'search_form': search_form,
-                    'search_results': results,
-                    'query': query,
-                    'tmdb_service': tmdb_service,
-                    'last_storage_box': last_storage_box,
-                }
-                return render(request, 'tracker/dvd_search.html', context)
+                # If the query is a TMDB ID (all digits, reasonable length), fetch directly
+                if query.isdigit() and 1 <= len(query) <= 10:
+                    movie_data = tmdb_service.get_movie_details(query)
+                    results = []
+                    if movie_data:
+                        # Wrap in a list to match search results structure
+                        if movie_data.get('poster_path'):
+                            movie_data['poster_url'] = tmdb_service.get_full_poster_url(movie_data['poster_path'])
+                        else:
+                            movie_data['poster_url'] = None
+                        results = [movie_data]
+                    context = {
+                        'search_form': search_form,
+                        'search_results': results,
+                        'query': query,
+                        'tmdb_service': tmdb_service,
+                        'last_storage_box': last_storage_box,
+                        'tmdb_id_search': True,
+                    }
+                    return render(request, 'tracker/dvd_search.html', context)
+                else:
+                    # Normal title search
+                    search_results = tmdb_service.search_movies(query)
+                    results = search_results.get('results', [])
+                    for movie in results:
+                        if movie.get('poster_path'):
+                            movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
+                        else:
+                            movie['poster_url'] = None
+                    context = {
+                        'search_form': search_form,
+                        'search_results': results,
+                        'query': query,
+                        'tmdb_service': tmdb_service,
+                        'last_storage_box': last_storage_box,
+                        'tmdb_id_search': False,
+                    }
+                    return render(request, 'tracker/dvd_search.html', context)
         else:
             # Manual form submission
             dvd_form = DVDForm(request.POST)
