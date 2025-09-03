@@ -184,6 +184,8 @@ def dvd_add(request):
                             movie_data['poster_url'] = tmdb_service.get_full_poster_url(movie_data['poster_path'])
                         else:
                             movie_data['poster_url'] = None
+                        # Ensure original_language is present
+                        movie_data['original_language'] = movie_data.get('original_language', '')
                         results = [movie_data]
                     context = {
                         'search_form': search_form,
@@ -203,6 +205,8 @@ def dvd_add(request):
                             movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
                         else:
                             movie['poster_url'] = None
+                        # Ensure original_language is present
+                        movie['original_language'] = movie.get('original_language', '')
                     context = {
                         'search_form': search_form,
                         'search_results': results,

@@ -27,7 +27,12 @@
                                 <h6 class="card-title">{{ movie.title }}</h6>
                                 
                                 {% if movie.release_date %}
-                                    <small class="text-muted">{{ movie.release_date|slice:":4" }}</small>
+                                    <small class="text-muted">
+                                        {{ movie.release_date|slice:":4" }}
+                                        {% if movie.original_language %}
+                                            &middot; {{ movie.original_language|upper }}
+                                        {% endif %}
+                                    </small>
                                 {% endif %}
                                 
                                 {% if movie.overview %}
