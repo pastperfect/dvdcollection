@@ -168,3 +168,183 @@ class BulkUploadPreviewTest(TestCase):
         
         # Verify session was cleared
         self.assertNotIn('bulk_upload_data', self.client.session)
+
+    def test_bulk_upload_duplicate_detection(self):
+        """Test that duplicate detection works in preview"""
+        # Create an existing DVD
+        existing_dvd = DVD.objects.create(
+            name="Test Duplicate Movie",
+            tmdb_id=99999,
+            status="kept",
+            media_type="physical",
+            copy_number=1
+        )
+
+        # Set up session data with a movie that matches the existing one
+        session = self.client.session
+        session['bulk_upload_data'] = {
+            'form_defaults': {
+                'default_status': 'kept',
+                'default_media_type': 'physical',
+                'skip_existing': False,  # Allow duplicates
+                'default_is_tartan_dvd': False,
+                'default_is_box_set': False,
+                'default_box_set_name': '',
+                'default_is_unopened': False,
+                'default_is_unwatched': True,
+                'default_storage_box': ''
+            },
+            'matches': [
+                {
+                    'original_title': 'Test Duplicate Movie',
+                    'tmdb_data': {
+                        'id': 99999,
+                        'title': 'Test Duplicate Movie',
+                        'overview': 'A duplicate test movie',
+                        'release_date': '2023-01-01',
+                        'runtime': 120,
+                        'genres': [{'name': 'Action'}],
+                        'vote_average': 7.5,
+                        'imdb_id': 'tt9999999'
+                    },
+                    'confirmed': True,
+                    'removed': False,
+                    'poster_url': None,
+                    'error': None
+                }
+            ],
+            'timestamp': '2025-09-05T12:00:00'
+        }
+        session.save()
+
+        # Get the preview page
+        response = self.client.get(reverse('tracker:bulk_upload_preview'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Check that duplicate information is displayed
+        self.assertContains(response, 'Duplicate')
+        self.assertContains(response, 'You have 1 copy(ies)')
+        self.assertContains(response, 'This will be copy #2')
+
+    def test_bulk_upload_creates_duplicate_with_correct_copy_number(self):
+        """Test that duplicates are created with correct copy numbers"""
+        # Create an existing DVD
+        existing_dvd = DVD.objects.create(
+            name="Test Duplicate Create",
+            tmdb_id=88888,
+            status="kept",
+            media_type="physical",
+            copy_number=1
+        )
+
+        # Set up session data
+        session = self.client.session
+        session['bulk_upload_data'] = {
+            'form_defaults': {
+                'default_status': 'kept',
+                'default_media_type': 'download',
+                'skip_existing': False,  # Allow duplicates
+                'default_is_tartan_dvd': False,
+                'default_is_box_set': False,
+                'default_box_set_name': '',
+                'default_is_unopened': False,
+                'default_is_unwatched': True,
+                'default_storage_box': ''
+            },
+            'matches': [
+                {
+                    'original_title': 'Test Duplicate Create',
+                    'tmdb_data': {
+                        'id': 88888,
+                        'title': 'Test Duplicate Create',
+                        'overview': 'A duplicate creation test',
+                        'release_date': '2023-01-01',
+                        'runtime': 120,
+                        'genres': [{'name': 'Drama'}],
+                        'vote_average': 8.0,
+                        'imdb_id': 'tt8888888'
+                    },
+                    'confirmed': True,
+                    'removed': False,
+                    'poster_url': None,
+                    'error': None
+                }
+            ],
+            'timestamp': '2025-09-05T12:00:00'
+        }
+        session.save()
+
+        # Process the upload
+        response = self.client.post(reverse('tracker:bulk_upload_process'))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify both DVDs exist
+        dvds = DVD.objects.filter(tmdb_id=88888).order_by('copy_number')
+        self.assertEqual(dvds.count(), 2)
+        
+        # Verify copy numbers
+        self.assertEqual(dvds[0].copy_number, 1)
+        self.assertEqual(dvds[0].media_type, 'physical')  # Original
+        self.assertEqual(dvds[1].copy_number, 2)
+        self.assertEqual(dvds[1].media_type, 'download')  # New duplicate
+
+    def test_bulk_upload_skips_existing_when_enabled(self):
+        """Test that existing movies are skipped when skip_existing is True"""
+        # Create an existing DVD
+        existing_dvd = DVD.objects.create(
+            name="Test Skip Movie",
+            tmdb_id=77777,
+            status="kept",
+            media_type="physical",
+            copy_number=1
+        )
+
+        # Set up session data with skip_existing=True
+        session = self.client.session
+        session['bulk_upload_data'] = {
+            'form_defaults': {
+                'default_status': 'kept',
+                'default_media_type': 'physical',
+                'skip_existing': True,  # Skip duplicates
+                'default_is_tartan_dvd': False,
+                'default_is_box_set': False,
+                'default_box_set_name': '',
+                'default_is_unopened': False,
+                'default_is_unwatched': True,
+                'default_storage_box': ''
+            },
+            'matches': [
+                {
+                    'original_title': 'Test Skip Movie',
+                    'tmdb_data': {
+                        'id': 77777,
+                        'title': 'Test Skip Movie',
+                        'overview': 'A movie to skip',
+                        'release_date': '2023-01-01',
+                        'runtime': 120,
+                        'genres': [{'name': 'Comedy'}],
+                        'vote_average': 6.0,
+                        'imdb_id': 'tt7777777'
+                    },
+                    'confirmed': True,
+                    'removed': False,
+                    'poster_url': None,
+                    'error': None
+                }
+            ],
+            'timestamp': '2025-09-05T12:00:00'
+        }
+        session.save()
+
+        # Process the upload
+        response = self.client.post(reverse('tracker:bulk_upload_process'))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify only one DVD exists (the original)
+        dvds = DVD.objects.filter(tmdb_id=77777)
+        self.assertEqual(dvds.count(), 1)
+        self.assertEqual(dvds[0].copy_number, 1)
+
+        # Verify skip message is shown
+        self.assertContains(response, 'Skipped')
+        self.assertContains(response, 'already have')

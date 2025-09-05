@@ -1370,20 +1370,55 @@ def bulk_upload_preview(request):
     removed_matches = len([m for m in bulk_data['matches'] if m['removed']])
     error_matches = len([m for m in bulk_data['matches'] if m.get('error') and not m['removed']])
     
-    # Check for potential duplicates
-    form_defaults = bulk_data['form_defaults']
-    skip_existing = form_defaults.get('skip_existing', True)
-    
-    if skip_existing:
-        # Check existing DVDs
-        for match in bulk_data['matches']:
-            if match['tmdb_data'] and not match['removed']:
-                tmdb_id = match['tmdb_data'].get('id')
-                if tmdb_id and DVD.objects.filter(tmdb_id=tmdb_id).exists():
-                    existing_dvd = DVD.objects.get(tmdb_id=tmdb_id)
-                    match['existing_dvd'] = existing_dvd.name
+    # Check for duplicates and add detailed duplicate info
+    for match in bulk_data['matches']:
+        if match['tmdb_data'] and not match['removed']:
+            tmdb_id = match['tmdb_data'].get('id')
+            if tmdb_id:
+                # Check for existing copies by TMDB ID
+                existing_copies = DVD.objects.filter(tmdb_id=tmdb_id).order_by('copy_number')
+                if existing_copies.exists():
+                    match['duplicate_info'] = {
+                        'is_duplicate': True,
+                        'existing_copies': list(existing_copies),
+                        'next_copy_number': existing_copies.aggregate(
+                            max_copy=Max('copy_number')
+                        )['max_copy'] + 1,
+                        'total_copies': existing_copies.count()
+                    }
                 else:
-                    match['existing_dvd'] = None
+                    match['duplicate_info'] = {'is_duplicate': False}
+            else:
+                # Fallback: check by name and release year
+                movie_name = match['tmdb_data'].get('title', '')
+                release_date = match['tmdb_data'].get('release_date', '')
+                release_year = None
+                if release_date:
+                    try:
+                        release_year = int(release_date.split('-')[0])
+                    except (ValueError, IndexError):
+                        pass
+                
+                if movie_name and release_year:
+                    existing_copies = DVD.objects.filter(
+                        name__iexact=movie_name,
+                        release_year=release_year
+                    ).order_by('copy_number')
+                    if existing_copies.exists():
+                        match['duplicate_info'] = {
+                            'is_duplicate': True,
+                            'existing_copies': list(existing_copies),
+                            'next_copy_number': existing_copies.aggregate(
+                                max_copy=Max('copy_number')
+                            )['max_copy'] + 1,
+                            'total_copies': existing_copies.count()
+                        }
+                    else:
+                        match['duplicate_info'] = {'is_duplicate': False}
+                else:
+                    match['duplicate_info'] = {'is_duplicate': False}
+        else:
+            match['duplicate_info'] = {'is_duplicate': False}
     
     context = {
         'bulk_data': bulk_data,
@@ -1437,6 +1472,29 @@ def bulk_upload_process(request):
             tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
             poster_path = tmdb_formatted_data.pop('poster_path', None)
             
+            # Determine copy number for duplicates
+            copy_number = 1
+            if tmdb_id:
+                # Check for existing copies by TMDB ID
+                existing_copies = DVD.objects.filter(tmdb_id=tmdb_id)
+                if existing_copies.exists():
+                    copy_number = existing_copies.aggregate(
+                        max_copy=Max('copy_number')
+                    )['max_copy'] + 1
+            else:
+                # Fallback: check by name and release year
+                movie_name = tmdb_formatted_data['name']
+                release_year = tmdb_formatted_data['release_year']
+                if movie_name and release_year:
+                    existing_copies = DVD.objects.filter(
+                        name__iexact=movie_name,
+                        release_year=release_year
+                    )
+                    if existing_copies.exists():
+                        copy_number = existing_copies.aggregate(
+                            max_copy=Max('copy_number')
+                        )['max_copy'] + 1
+            
             # Create DVD entry
             dvd = DVD.objects.create(
                 name=tmdb_formatted_data['name'],
@@ -1447,6 +1505,7 @@ def bulk_upload_process(request):
                 tmdb_id=tmdb_formatted_data['tmdb_id'],
                 imdb_id=tmdb_formatted_data['imdb_id'],
                 rating=tmdb_formatted_data['rating'],
+                copy_number=copy_number,  # Set the proper copy number
                 status=form_defaults['default_status'],
                 media_type=form_defaults['default_media_type'],
                 is_tartan_dvd=form_defaults['default_is_tartan_dvd'],

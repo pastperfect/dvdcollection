@@ -81,14 +81,24 @@
             <div class="row g-3">
                 {% for match in bulk_data.matches %}
                 <div class="col-lg-6">
-                    <div class="card h-100 {% if match.removed %}bg-light opacity-75{% elif match.error %}border-warning{% elif match.existing_dvd %}border-info{% else %}border-success{% endif %}">
+                    <div class="card h-100 {% if match.removed %}bg-light opacity-75{% elif match.error %}border-warning{% elif match.duplicate_info.is_duplicate %}border-info{% else %}border-success{% endif %}">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0">{{ match.original_title }}</h6>
+                                <h6 class="mb-0">
+                                    {{ match.original_title }}
+                                    {% if match.duplicate_info.is_duplicate %}
+                                    <span class="badge bg-info ms-2">
+                                        <i class="bi bi-layers"></i> Duplicate
+                                    </span>
+                                    {% endif %}
+                                </h6>
                                 {% if match.error %}
                                 <small class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ match.error }}</small>
-                                {% elif match.existing_dvd %}
-                                <small class="text-info"><i class="bi bi-info-circle"></i> Already have: {{ match.existing_dvd }}</small>
+                                {% elif match.duplicate_info.is_duplicate %}
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle"></i> 
+                                    You have {{ match.duplicate_info.total_copies }} copy(ies). This will be copy #{{ match.duplicate_info.next_copy_number }}.
+                                </small>
                                 {% elif match.removed %}
                                 <small class="text-muted"><i class="bi bi-eye-slash"></i> Removed from list</small>
                                 {% else %}
@@ -145,6 +155,24 @@
                                     {% if match.tmdb_data.overview %}
                                     <p class="small">{{ match.tmdb_data.overview|truncatewords:15 }}</p>
                                     {% endif %}
+                                    
+                                    <!-- Duplicate Information -->
+                                    {% if match.duplicate_info.is_duplicate %}
+                                    <div class="alert alert-info py-2 px-3 mb-2">
+                                        <strong><i class="bi bi-layers"></i> Existing Copies:</strong><br>
+                                        {% for copy in match.duplicate_info.existing_copies %}
+                                        <small>
+                                            Copy #{{ copy.copy_number }}{% if copy.duplicate_notes %} ({{ copy.duplicate_notes }}){% endif %}
+                                            - {{ copy.get_status_display }} {{ copy.get_media_type_display }}
+                                            {% if copy.storage_box %}- Box: {{ copy.storage_box }}{% endif %}
+                                        </small><br>
+                                        {% endfor %}
+                                        <small class="text-success">
+                                            <strong>This will be added as Copy #{{ match.duplicate_info.next_copy_number }}</strong>
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    
                                     <small class="text-muted">TMDB ID: {{ match.tmdb_data.id }}</small>
                                 </div>
                             </div>
