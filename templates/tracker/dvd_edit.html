@@ -152,6 +152,20 @@
                             {% endif %}
                         </div>
                         
+                        <div class="col-md-6 mb-0" id="location-container" style="display: none;">
+                            <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                            <input type="text" 
+                                   id="id_location" 
+                                   name="location" 
+                                   class="form-control" 
+                                   placeholder="Enter location..." 
+                                   value="{{ form.location.value|default:'' }}"
+                                   autocomplete="off">
+                            {% if form.location.errors %}
+                                <div class="text-danger">{{ form.location.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
                         <!-- Duplicate Tracking -->
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.copy_number.id_for_label }}" class="form-label">Copy Number</label>
@@ -326,6 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const storageBoxContainer = document.getElementById('storage-box-container');
     const storageBoxInput = document.getElementById('id_storage_box');
     const storageBoxAutocompleteDropdown = document.getElementById('edit-storage-box-autocomplete');
+    const locationContainer = document.getElementById('location-container');
+    const locationInput = document.getElementById('id_location');
     
     let debounceTimer;
     let currentFocus = -1;
@@ -399,13 +415,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function toggleStorageBox() {
-        if (statusSelect && storageBoxContainer && storageBoxInput) {
+        if (statusSelect && storageBoxContainer && storageBoxInput && locationContainer && locationInput) {
             if (statusSelect.value === 'kept') {
                 storageBoxContainer.style.display = 'block';
+                locationContainer.style.display = 'none';
+                locationInput.value = '';
+            } else if (statusSelect.value === 'unboxed') {
+                storageBoxContainer.style.display = 'none';
+                storageBoxInput.value = '';
+                hideStorageBoxAutocomplete();
+                locationContainer.style.display = 'block';
             } else {
                 storageBoxContainer.style.display = 'none';
                 storageBoxInput.value = '';
                 hideStorageBoxAutocomplete();
+                locationContainer.style.display = 'none';
+                locationInput.value = '';
             }
         }
     }
@@ -550,6 +575,49 @@ document.addEventListener('DOMContentLoaded', function() {
             hideStorageBoxAutocomplete();
         }
     });
+    
+    // Location validation
+    function validateLocation() {
+        if (!locationInput || statusSelect.value !== 'unboxed') return;
+        
+        const location = locationInput.value.trim();
+        if (!location) return;
+        
+        // Clear previous validation
+        locationInput.classList.remove('is-invalid', 'is-valid');
+        const existingFeedback = locationInput.parentNode.querySelector('.invalid-feedback, .valid-feedback');
+        if (existingFeedback) existingFeedback.remove();
+        
+        const dvdId = '{{ dvd.pk }}';
+        fetch(`{% url 'tracker:check_location_availability' %}?location=${encodeURIComponent(location)}&dvd_id=${dvdId}`)
+            .then(response => response.json())
+            .then(data => {
+                const feedback = document.createElement('div');
+                feedback.textContent = data.message;
+                
+                if (data.available) {
+                    locationInput.classList.add('is-valid');
+                    feedback.className = 'valid-feedback';
+                } else {
+                    locationInput.classList.add('is-invalid');
+                    feedback.className = 'invalid-feedback';
+                }
+                
+                locationInput.parentNode.appendChild(feedback);
+            })
+            .catch(error => {
+                console.error('Error checking location:', error);
+            });
+    }
+    
+    // Add location validation event listener
+    if (locationInput) {
+        let locationDebounceTimer;
+        locationInput.addEventListener('input', function() {
+            clearTimeout(locationDebounceTimer);
+            locationDebounceTimer = setTimeout(validateLocation, 500);
+        });
+    }
 });
 </script>
 {% endblock %}

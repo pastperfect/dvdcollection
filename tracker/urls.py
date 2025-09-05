@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/search/', views.search_tmdb_ajax, name='search_tmdb_ajax'),
     path('api/box-set-autocomplete/', views.box_set_autocomplete, name='box_set_autocomplete'),
     path('api/storage-box-autocomplete/', views.storage_box_autocomplete, name='storage_box_autocomplete'),
+    path('api/check-location/', views.check_location_availability, name='check_location_availability'),
     path('api/bulk-update-dvd/', views.bulk_update_dvd, name='bulk_update_dvd'),
     path('api/delete-dvd/', views.delete_dvd_api, name='delete_dvd_api'),
     path('api/refresh-all-tmdb/', views.refresh_all_tmdb, name='refresh_all_tmdb'),

@@ -209,6 +209,21 @@
                                 {% endif %}
                             </div>
                             
+                            <div class="mb-3" id="location-container" style="display: none;">
+                                <label for="id_location" class="form-label">Location</label>
+                                <input type="text" 
+                                       id="id_location" 
+                                       name="location" 
+                                       class="form-control" 
+                                       placeholder="Enter location..." 
+                                       value="{{ next_location_number }}"
+                                       autocomplete="off">
+                                <div class="form-text">Next available location: {{ next_location_number }}</div>
+                                {% if form.location.errors %}
+                                    <div class="text-danger">{{ form.location.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
                             <!-- Duplicate Tracking -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -258,6 +273,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const storageBoxContainer = document.getElementById('storage-box-container');
     const storageBoxInput = document.getElementById('id_storage_box');
     const storageBoxAutocompleteDropdown = document.getElementById('storage-box-autocomplete');
+    const locationContainer = document.getElementById('location-container');
+    const locationInput = document.getElementById('id_location');
     
     let debounceTimer;
     let currentFocus = -1;
@@ -327,13 +344,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function toggleStorageBox() {
-        if (statusSelect && storageBoxContainer && storageBoxInput) {
+        if (statusSelect && storageBoxContainer && storageBoxInput && locationContainer && locationInput) {
             if (statusSelect.value === 'kept') {
                 storageBoxContainer.style.display = 'block';
+                locationContainer.style.display = 'none';
+                locationInput.value = '';
+            } else if (statusSelect.value === 'unboxed') {
+                storageBoxContainer.style.display = 'none';
+                storageBoxInput.value = '';
+                hideStorageBoxAutocomplete();
+                locationContainer.style.display = 'block';
+                // Auto-populate with next location number if empty
+                if (!locationInput.value) {
+                    locationInput.value = '{{ next_location_number }}';
+                }
             } else {
                 storageBoxContainer.style.display = 'none';
                 storageBoxInput.value = '';
                 hideStorageBoxAutocomplete();
+                locationContainer.style.display = 'none';
+                locationInput.value = '';
             }
         }
     }
@@ -478,6 +508,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Location validation
+    function validateLocation() {
+        if (!locationInput || statusSelect.value !== 'unboxed') return;
+        
+        const location = locationInput.value.trim();
+        if (!location) return;
+        
+        // Clear previous validation
+        locationInput.classList.remove('is-invalid', 'is-valid');
+        const existingFeedback = locationInput.parentNode.querySelector('.invalid-feedback, .valid-feedback');
+        if (existingFeedback) existingFeedback.remove();
+        
+        fetch(`{% url 'tracker:check_location_availability' %}?location=${encodeURIComponent(location)}`)
+            .then(response => response.json())
+            .then(data => {
+                const feedback = document.createElement('div');
+                feedback.textContent = data.message;
+                
+                if (data.available) {
+                    locationInput.classList.add('is-valid');
+                    feedback.className = 'valid-feedback';
+                } else {
+                    locationInput.classList.add('is-invalid');
+                    feedback.className = 'invalid-feedback';
+                }
+                
+                locationInput.parentNode.appendChild(feedback);
+            })
+            .catch(error => {
+                console.error('Error checking location:', error);
+            });
+    }
+    
     // Hide autocomplete when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.autocomplete-container')) {
@@ -485,6 +548,15 @@ document.addEventListener('DOMContentLoaded', function() {
             hideStorageBoxAutocomplete();
         }
     });
+    
+    // Add location validation
+    if (locationInput) {
+        let locationDebounceTimer;
+        locationInput.addEventListener('input', function() {
+            clearTimeout(locationDebounceTimer);
+            locationDebounceTimer = setTimeout(validateLocation, 500);
+        });
+    }
 
 });
 

@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 
 
 class AppSettings(models.Model):
@@ -32,6 +33,7 @@ class DVD(models.Model):
     STATUS_CHOICES = [
         ('kept', 'Kept'),
         ('disposed', 'Disposed'),
+        ('unboxed', 'Unboxed'),
     ]
     
     MEDIA_TYPE_CHOICES = [
@@ -52,6 +54,7 @@ class DVD(models.Model):
     is_unopened = models.BooleanField(default=False, help_text='Is this DVD still unopened?')
     is_unwatched = models.BooleanField(default=False, help_text='Have you not watched this movie yet?')
     storage_box = models.CharField(max_length=100, blank=True, help_text='Storage box location (for kept items)')
+    location = models.CharField(max_length=255, blank=True, help_text='Location (for unboxed items)')
     
     # Duplicate tracking
     copy_number = models.PositiveSmallIntegerField(default=1, help_text='Copy number (1, 2, 3, etc.) for duplicate movies')
@@ -84,6 +87,27 @@ class DVD(models.Model):
     def __str__(self):
         return self.name
     
+    def clean(self):
+        """Custom validation for the DVD model."""
+        super().clean()
+        
+        # Validate location field for unboxed DVDs
+        if self.status == 'unboxed':
+            if self.location:
+                # Check if location is already taken by another DVD
+                if self.is_location_taken(self.location, exclude_pk=self.pk):
+                    raise ValidationError({
+                        'location': f'Location {self.location} is already taken by another unboxed DVD.'
+                    })
+                
+                # Check if location is a valid number
+                try:
+                    int(self.location)
+                except ValueError:
+                    raise ValidationError({
+                        'location': 'Location must be a number for unboxed DVDs.'
+                    })
+    
     def get_absolute_url(self):
         return reverse('tracker:dvd_detail', kwargs={'pk': self.pk})
     
@@ -110,7 +134,8 @@ class DVD(models.Model):
         """Return CSS class for status display."""
         classes = {
             'kept': 'success',
-            'disposed': 'danger'
+            'disposed': 'danger',
+            'unboxed': 'warning'
         }
         return classes.get(self.status, 'secondary')
     
@@ -174,3 +199,40 @@ class DVD(models.Model):
         if self.duplicate_notes:
             copy_text += f" ({self.duplicate_notes})"
         return copy_text
+    
+    @classmethod
+    def get_next_location_number(cls):
+        """Get the next available location number for unboxed DVDs."""
+        from django.db import connection
+        
+        # Use raw SQL to properly cast location to integer and get the max
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT MAX(CAST(location AS INTEGER)) 
+                FROM tracker_dvd 
+                WHERE status = 'unboxed' 
+                AND location IS NOT NULL 
+                AND location != '' 
+                AND location GLOB '[0-9]*'
+            """)
+            result = cursor.fetchone()
+            max_location = result[0] if result[0] is not None else 0
+        
+        return max_location + 1
+    
+    @classmethod
+    def is_location_taken(cls, location_number, exclude_pk=None):
+        """Check if a location number is already taken by another unboxed DVD."""
+        queryset = cls.objects.filter(
+            status='unboxed',
+            location=str(location_number)
+        )
+        if exclude_pk:
+            queryset = queryset.exclude(pk=exclude_pk)
+        return queryset.exists()
+    
+    @classmethod
+    def get_next_sequential_locations(cls, count):
+        """Get the next sequential location numbers for bulk operations."""
+        start_number = cls.get_next_location_number()
+        return [str(start_number + i) for i in range(count)]

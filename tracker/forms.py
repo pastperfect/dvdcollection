@@ -61,7 +61,7 @@ class DVDForm(forms.ModelForm):
         model = DVD
         fields = [
             'tmdb_id', 'name', 'status', 'media_type', 'overview', 'imdb_id',
-            'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box',
+            'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box', 'location',
             'copy_number', 'duplicate_notes'
         ]
         widgets = {
@@ -71,7 +71,8 @@ class DVDForm(forms.ModelForm):
                 'placeholder': 'Movie title'
             }),
             'status': forms.Select(attrs={
-                'class': 'form-select'
+                'class': 'form-select',
+                'id': 'id_status'
             }),
             'media_type': forms.Select(attrs={
                 'class': 'form-select'
@@ -110,6 +111,11 @@ class DVDForm(forms.ModelForm):
                 'placeholder': 'Enter storage box location...',
                 'id': 'id_storage_box'
             }),
+            'location': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter location...',
+                'id': 'id_location'
+            }),
             'copy_number': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': '1',
@@ -127,6 +133,45 @@ class DVDForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Add some JavaScript to show/hide box set name field
         self.fields['box_set_name'].widget.attrs['style'] = 'display: none;' if not self.instance.is_box_set else ''
+        # Show/hide location field based on status
+        if self.instance and self.instance.status == 'unboxed':
+            self.fields['location'].widget.attrs['style'] = ''
+        else:
+            self.fields['location'].widget.attrs['style'] = 'display: none;'
+    
+    def clean_location(self):
+        """Validate location field for uniqueness when status is unboxed."""
+        location = self.cleaned_data.get('location', '').strip()
+        status = self.cleaned_data.get('status')
+        
+        # Only validate location if status is unboxed and location is provided
+        if status == 'unboxed' and location:
+            # Check if location is numeric
+            if not location.isdigit():
+                raise forms.ValidationError('Location must be a number.')
+            
+            # Check for duplicates
+            exclude_pk = self.instance.pk if self.instance else None
+            if DVD.is_location_taken(location, exclude_pk=exclude_pk):
+                raise forms.ValidationError(f'Location {location} is already taken by another unboxed DVD.')
+        
+        return location
+    
+    def clean(self):
+        """Additional form validation."""
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        location = cleaned_data.get('location', '').strip()
+        
+        # Require location for unboxed status
+        if status == 'unboxed' and not location:
+            self.add_error('location', 'Location is required when status is Unboxed.')
+        
+        # Clear location if status is not unboxed
+        if status != 'unboxed':
+            cleaned_data['location'] = ''
+            
+        return cleaned_data
 
 
 class DVDFilterForm(forms.Form):
@@ -294,4 +339,14 @@ class BulkUploadForm(forms.Form):
             'placeholder': 'Enter storage box location...'
         }),
         help_text='Default storage box location for kept movies'
+    )
+    
+    default_location = forms.CharField(
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter location...'
+        }),
+        help_text='Default location for unboxed movies'
     )

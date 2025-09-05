@@ -210,6 +210,12 @@
                         </span>
                     </div>
                     <div class="collection-item">
+                        <span class="collection-label">Location:</span>
+                        <span class="badge badge-status badge-box1">
+                            {% if dvd.location %}{{ dvd.location }}{% else %}N/A{% endif %}
+                        </span>
+                    </div>
+                    <div class="collection-item">
                         <span class="collection-label">Added:</span>
                         <span class="collection-value">{{ dvd.created_at|date:"M d, Y" }}</span>
                     </div>

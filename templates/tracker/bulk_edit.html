@@ -76,13 +76,14 @@
                         <table class="table table-hover">
                             <thead class="table-primary">
                                 <tr>
-                                    <th style="width: 30%;">Movie Name</th>
-                                    <th style="width: 12%;">Status</th>
-                                    <th style="width: 12%;">Media Type</th>
-                                    <th style="width: 18%;">Box Set</th>
-                                    <th style="width: 12%;">Storage Box</th>
-                                    <th style="width: 10%;">Tartan DVD</th>
-                                    <th style="width: 6%;">Actions</th>
+                                    <th style="width: 25%;">Movie Name</th>
+                                    <th style="width: 10%;">Status</th>
+                                    <th style="width: 10%;">Media Type</th>
+                                    <th style="width: 15%;">Box Set</th>
+                                    <th style="width: 10%;">Storage Box</th>
+                                    <th style="width: 10%;">Location</th>
+                                    <th style="width: 8%;">Tartan DVD</th>
+                                    <th style="width: 7%;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -138,6 +139,12 @@
                                                placeholder="Storage location...">
                                     </td>
                                     <td>
+                                        <input type="text" class="form-control form-control-sm editable-text" 
+                                               data-field="location" data-dvd-id="{{ dvd.pk }}"
+                                               value="{{ dvd.location|default:'' }}" 
+                                               placeholder="Location...">
+                                    </td>
+                                    <td>
                                         <div class="form-check">
                                             <input class="form-check-input editable-checkbox" type="checkbox" 
                                                    data-field="is_tartan_dvd" data-dvd-id="{{ dvd.pk }}"
@@ -164,7 +171,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="8" class="text-center text-muted py-4">
                                         <i class="bi bi-inbox display-1"></i>
                                         <h5 class="mt-3">No DVDs found</h5>
                                         <p>Try adjusting your filters or <a href="{% url 'tracker:dvd_add' %}">add a new DVD</a>.</p>

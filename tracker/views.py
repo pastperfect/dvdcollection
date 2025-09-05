@@ -168,6 +168,8 @@ def dvd_add(request):
         .values_list('storage_box', flat=True)
         .first()
     )
+    # Get next location number for unboxed DVDs
+    next_location_number = DVD.get_next_location_number()
     if request.method == 'POST':
         if 'search' in request.POST:
             search_form = DVDSearchForm(request.POST)
@@ -193,6 +195,7 @@ def dvd_add(request):
                         'query': query,
                         'tmdb_service': tmdb_service,
                         'last_storage_box': last_storage_box,
+                        'next_location_number': next_location_number,
                         'tmdb_id_search': True,
                     }
                     return render(request, 'tracker/dvd_search.html', context)
@@ -213,6 +216,7 @@ def dvd_add(request):
                         'query': query,
                         'tmdb_service': tmdb_service,
                         'last_storage_box': last_storage_box,
+                        'next_location_number': next_location_number,
                         'tmdb_id_search': False,
                     }
                     return render(request, 'tracker/dvd_search.html', context)
@@ -225,7 +229,11 @@ def dvd_add(request):
                 dvd.save()
                 messages.success(request, f'"{dvd.name}" has been added to your collection.')
                 return redirect('tracker:dvd_add')
-    return render(request, 'tracker/dvd_add.html', {'search_form': search_form, 'last_storage_box': last_storage_box})
+    return render(request, 'tracker/dvd_add.html', {
+        'search_form': search_form, 
+        'last_storage_box': last_storage_box,
+        'next_location_number': next_location_number
+    })
 
 
 def dvd_add_from_tmdb(request, tmdb_id):
@@ -265,6 +273,9 @@ def dvd_add_from_tmdb(request, tmdb_id):
         .values_list('storage_box', flat=True)
         .first()
     )
+    
+    # Get next location number for unboxed DVDs
+    next_location_number = DVD.get_next_location_number()
     
     try:
         if request.method == 'POST':
@@ -312,6 +323,7 @@ def dvd_add_from_tmdb(request, tmdb_id):
             'movie_data': movie_data,
             'tmdb_service': tmdb_service,
             'last_storage_box': last_storage_box,
+            'next_location_number': next_location_number,
         }
         return render(request, 'tracker/dvd_add_from_tmdb.html', context)
     
@@ -346,6 +358,27 @@ def dvd_delete(request, pk):
         return redirect('tracker:dvd_list')
     
     return render(request, 'tracker/dvd_delete.html', {'dvd': dvd})
+
+
+@require_http_methods(["GET"])
+def check_location_availability(request):
+    """AJAX endpoint for checking location availability."""
+    location = request.GET.get('location', '').strip()
+    dvd_id = request.GET.get('dvd_id', '').strip()
+    
+    if not location:
+        return JsonResponse({'available': True, 'message': ''})
+    
+    if not location.isdigit():
+        return JsonResponse({'available': False, 'message': 'Location must be a number.'})
+    
+    exclude_pk = dvd_id if dvd_id else None
+    is_taken = DVD.is_location_taken(location, exclude_pk=exclude_pk)
+    
+    if is_taken:
+        return JsonResponse({'available': False, 'message': f'Location {location} is already taken.'})
+    
+    return JsonResponse({'available': True, 'message': 'Location is available.'})
 
 
 @require_http_methods(["GET"])
@@ -396,7 +429,8 @@ def bulk_upload(request):
                 'default_box_set_name': form.cleaned_data['default_box_set_name'],
                 'default_is_unopened': form.cleaned_data['default_is_unopened'],
                 'default_is_unwatched': form.cleaned_data['default_is_unwatched'],
-                'default_storage_box': form.cleaned_data['default_storage_box']
+                'default_storage_box': form.cleaned_data['default_storage_box'],
+                'default_location': form.cleaned_data['default_location']
             }
             
             tmdb_service = TMDBService()
@@ -992,6 +1026,8 @@ def bulk_update_dvd(request):
             dvd.box_set_name = value
         elif field == 'storage_box':
             dvd.storage_box = value
+        elif field == 'location':
+            dvd.location = value
         elif field == 'is_tartan_dvd':
             dvd.is_tartan_dvd = value == 'true'
         else:
@@ -1447,6 +1483,19 @@ def bulk_upload_process(request):
     form_defaults = bulk_data['form_defaults']
     tmdb_service = TMDBService()
     
+    # Pre-calculate sequential location numbers for unboxed DVDs
+    unboxed_matches = [
+        match for match in bulk_data['matches'] 
+        if not match['removed'] and match['tmdb_data'] and match['confirmed']
+        and form_defaults['default_status'] == 'unboxed'
+    ]
+    
+    if unboxed_matches and form_defaults['default_status'] == 'unboxed':
+        sequential_locations = DVD.get_next_sequential_locations(len(unboxed_matches))
+        location_iter = iter(sequential_locations)
+    else:
+        location_iter = iter([])
+    
     results = {
         'added': [],
         'skipped': [],
@@ -1495,6 +1544,19 @@ def bulk_upload_process(request):
                             max_copy=Max('copy_number')
                         )['max_copy'] + 1
             
+            # Assign location for unboxed DVDs
+            assigned_location = ''
+            if form_defaults['default_status'] == 'unboxed':
+                try:
+                    assigned_location = next(location_iter)
+                except StopIteration:
+                    # Fallback to getting next available location
+                    assigned_location = str(DVD.get_next_location_number())
+            elif form_defaults['default_status'] == 'kept':
+                storage_box = form_defaults['default_storage_box']
+            else:
+                storage_box = ''
+            
             # Create DVD entry
             dvd = DVD.objects.create(
                 name=tmdb_formatted_data['name'],
@@ -1513,7 +1575,8 @@ def bulk_upload_process(request):
                 box_set_name=form_defaults['default_box_set_name'] if form_defaults['default_is_box_set'] else '',
                 is_unopened=form_defaults['default_is_unopened'],
                 is_unwatched=form_defaults['default_is_unwatched'],
-                storage_box=form_defaults['default_storage_box'] if form_defaults['default_status'] == 'kept' else ''
+                storage_box=form_defaults['default_storage_box'] if form_defaults['default_status'] == 'kept' else '',
+                location=assigned_location
             )
             
             # Download poster if available

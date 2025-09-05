@@ -53,6 +53,7 @@
                             <select class="form-select" id="manual_status" name="status" onchange="toggleStorageBox()">
                                 <option value="kept">Kept</option>
                                 <option value="disposed">Disposed</option>
+                                <option value="unboxed">Unboxed</option>
                             </select>
                         </div>
                         
@@ -144,6 +145,18 @@
                                 </div>
                             </div>
                             
+                            <div class="mb-3" id="manual-location-container" style="display: none;">
+                                <label for="manual_location" class="form-label">Location</label>
+                                <input type="text" 
+                                       id="manual_location" 
+                                       name="location" 
+                                       class="form-control" 
+                                       placeholder="Enter location..."
+                                       value="{{ next_location_number }}"
+                                       autocomplete="off">
+                                <div class="form-text">Next available location: {{ next_location_number }}</div>
+                            </div>
+                            
                             <!-- Duplicate Tracking -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -222,19 +235,72 @@ function toggleStorageBox() {
     const statusSelect = document.getElementById('manual_status');
     const storageBoxContainer = document.getElementById('manual-storage-box-container');
     const storageBoxInput = document.getElementById('manual_storage_box');
-    const autocompleteDropdown = document.getElementById('manual-storage-box-autocomplete');
+    const storageBoxAutocomplete = document.getElementById('manual-storage-box-autocomplete');
+    const locationContainer = document.getElementById('manual-location-container');
+    const locationInput = document.getElementById('manual_location');
     
-    if (statusSelect && storageBoxContainer && storageBoxInput) {
+    if (statusSelect && storageBoxContainer && storageBoxInput && locationContainer && locationInput) {
         if (statusSelect.value === 'kept') {
             storageBoxContainer.style.display = 'block';
+            locationContainer.style.display = 'none';
+            locationInput.value = '';
+        } else if (statusSelect.value === 'unboxed') {
+            storageBoxContainer.style.display = 'none';
+            storageBoxInput.value = '';
+            if (storageBoxAutocomplete) {
+                storageBoxAutocomplete.style.display = 'none';
+            }
+            locationContainer.style.display = 'block';
+            // Auto-populate with next location number if empty
+            if (!locationInput.value) {
+                locationInput.value = '{{ next_location_number }}';
+            }
         } else {
             storageBoxContainer.style.display = 'none';
             storageBoxInput.value = '';
-            if (autocompleteDropdown) {
-                autocompleteDropdown.style.display = 'none';
+            if (storageBoxAutocomplete) {
+                storageBoxAutocomplete.style.display = 'none';
             }
+            locationContainer.style.display = 'none';
+            locationInput.value = '';
         }
     }
+}
+
+// Location validation
+function validateLocation() {
+    const locationInput = document.getElementById('manual_location');
+    const statusSelect = document.getElementById('manual_status');
+    
+    if (!locationInput || statusSelect.value !== 'unboxed') return;
+    
+    const location = locationInput.value.trim();
+    if (!location) return;
+    
+    // Clear previous validation
+    locationInput.classList.remove('is-invalid', 'is-valid');
+    const existingFeedback = locationInput.parentNode.querySelector('.invalid-feedback, .valid-feedback');
+    if (existingFeedback) existingFeedback.remove();
+    
+    fetch(`{% url 'tracker:check_location_availability' %}?location=${encodeURIComponent(location)}`)
+        .then(response => response.json())
+        .then(data => {
+            const feedback = document.createElement('div');
+            feedback.textContent = data.message;
+            
+            if (data.available) {
+                locationInput.classList.add('is-valid');
+                feedback.className = 'valid-feedback';
+            } else {
+                locationInput.classList.add('is-invalid');
+                feedback.className = 'invalid-feedback';
+            }
+            
+            locationInput.parentNode.appendChild(feedback);
+        })
+        .catch(error => {
+            console.error('Error checking location:', error);
+        });
 }
 
 // Autocomplete functionality for manual form
@@ -435,6 +501,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function setStorageBoxActiveItem(items) {
         items.forEach((item, index) => {
             item.classList.toggle('active', index === storageBoxCurrentFocus);
+        });
+    }
+    
+    // Add location validation
+    const locationInput = document.getElementById('manual_location');
+    if (locationInput) {
+        let locationDebounceTimer;
+        locationInput.addEventListener('input', function() {
+            clearTimeout(locationDebounceTimer);
+            locationDebounceTimer = setTimeout(validateLocation, 500);
         });
     }
 });
