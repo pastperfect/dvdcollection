@@ -377,33 +377,30 @@ def search_tmdb_ajax(request):
 
 
 def bulk_upload(request):
-    """Bulk upload movies from a list."""
+    """Bulk upload movies from a list - first step: search and store in session."""
     if request.method == 'POST':
         form = BulkUploadForm(request.POST)
         if form.is_valid():
             movie_list = form.cleaned_data['movie_list']
-            default_status = form.cleaned_data['default_status']
-            default_media_type = form.cleaned_data['default_media_type']
-            skip_existing = form.cleaned_data['skip_existing']
-            
-            # Get all the new DVD-specific options
-            default_is_tartan_dvd = form.cleaned_data['default_is_tartan_dvd']
-            default_is_box_set = form.cleaned_data['default_is_box_set']
-            default_box_set_name = form.cleaned_data['default_box_set_name']
-            default_is_unopened = form.cleaned_data['default_is_unopened']
-            default_is_unwatched = form.cleaned_data['default_is_unwatched']
-            default_storage_box = form.cleaned_data['default_storage_box']
             
             # Split the movie list into individual titles
             movie_titles = [title.strip() for title in movie_list.split('\n') if title.strip()]
             
-            tmdb_service = TMDBService()
-            results = {
-                'added': [],
-                'skipped': [],
-                'not_found': [],
-                'errors': []
+            # Store form defaults in session
+            form_defaults = {
+                'default_status': form.cleaned_data['default_status'],
+                'default_media_type': form.cleaned_data['default_media_type'],
+                'skip_existing': form.cleaned_data['skip_existing'],
+                'default_is_tartan_dvd': form.cleaned_data['default_is_tartan_dvd'],
+                'default_is_box_set': form.cleaned_data['default_is_box_set'],
+                'default_box_set_name': form.cleaned_data['default_box_set_name'],
+                'default_is_unopened': form.cleaned_data['default_is_unopened'],
+                'default_is_unwatched': form.cleaned_data['default_is_unwatched'],
+                'default_storage_box': form.cleaned_data['default_storage_box']
             }
+            
+            tmdb_service = TMDBService()
+            matches = []
             
             for title in movie_titles:
                 try:
@@ -412,78 +409,68 @@ def bulk_upload(request):
                     movies = search_results.get('results', [])
                     
                     if not movies:
-                        results['not_found'].append(title)
+                        # No match found - store as error case
+                        matches.append({
+                            'original_title': title,
+                            'tmdb_data': None,
+                            'confirmed': False,
+                            'removed': False,
+                            'poster_url': None,
+                            'error': 'No TMDB matches found'
+                        })
                         continue
                     
                     # Take the first (most relevant) result
                     movie = movies[0]
                     tmdb_id = movie.get('id')
                     
-                    # Check if movie already exists
-                    if skip_existing and DVD.objects.filter(tmdb_id=tmdb_id).exists():
-                        existing_dvd = DVD.objects.get(tmdb_id=tmdb_id)
-                        results['skipped'].append(f"{title} (already have: {existing_dvd.name})")
-                        continue
-                    
                     # Get detailed movie data
                     movie_data = tmdb_service.get_movie_details(tmdb_id)
                     if not movie_data:
-                        results['errors'].append(f"Could not get details for: {title}")
+                        matches.append({
+                            'original_title': title,
+                            'tmdb_data': None,
+                            'confirmed': False,
+                            'removed': False,
+                            'poster_url': None,
+                            'error': 'Could not get movie details'
+                        })
                         continue
                     
-                    # Create DVD entry
-                    tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
+                    # Store match with poster URL
+                    poster_url = None
+                    if movie.get('poster_path'):
+                        poster_url = tmdb_service.get_full_poster_url(movie['poster_path'])
                     
-                    poster_path = tmdb_formatted_data.pop('poster_path', None)
-
-                    dvd = DVD.objects.create(
-                        name=tmdb_formatted_data['name'],
-                        overview=tmdb_formatted_data['overview'],
-                        release_year=tmdb_formatted_data['release_year'],
-                        runtime=tmdb_formatted_data['runtime'],
-                        genres=tmdb_formatted_data['genres'],
-                        tmdb_id=tmdb_formatted_data['tmdb_id'],
-                        imdb_id=tmdb_formatted_data['imdb_id'],
-                        rating=tmdb_formatted_data['rating'],
-                        status=default_status,
-                        media_type=default_media_type,
-                        # Use the new default values from form
-                        is_tartan_dvd=default_is_tartan_dvd,
-                        is_box_set=default_is_box_set,
-                        box_set_name=default_box_set_name if default_is_box_set else '',
-                        is_unopened=default_is_unopened,
-                        is_unwatched=default_is_unwatched,
-                        storage_box=default_storage_box if default_status == 'kept' else ''
-                    )
-
-                    if poster_path:
-                        full_poster_url = tmdb_service.get_full_poster_url(poster_path)
-                        tmdb_service.download_poster(dvd, full_poster_url)
-                    
-                    results['added'].append(dvd.name)
+                    matches.append({
+                        'original_title': title,
+                        'tmdb_data': movie_data,
+                        'confirmed': True,  # Default to confirmed
+                        'removed': False,
+                        'poster_url': poster_url,
+                        'error': None
+                    })
                     
                 except Exception as e:
-                    results['errors'].append(f"Error processing '{title}': {str(e)}")
+                    matches.append({
+                        'original_title': title,
+                        'tmdb_data': None,
+                        'confirmed': False,
+                        'removed': False,
+                        'poster_url': None,
+                        'error': f"Error: {str(e)}"
+                    })
             
-            # Show results to user
-            if results['added']:
-                messages.success(request, f"Successfully added {len(results['added'])} movies to your collection.")
-            
-            if results['skipped']:
-                messages.info(request, f"Skipped {len(results['skipped'])} movies already in your collection.")
-            
-            if results['not_found']:
-                messages.warning(request, f"Could not find {len(results['not_found'])} movies on TMDB.")
-            
-            if results['errors']:
-                messages.error(request, f"Encountered {len(results['errors'])} errors during upload.")
-            
-            # Render results page
-            context = {
-                'results': results,
-                'total_processed': len(movie_titles)
+            # Store everything in session
+            from datetime import datetime
+            request.session['bulk_upload_data'] = {
+                'form_defaults': form_defaults,
+                'matches': matches,
+                'timestamp': datetime.now().isoformat()
             }
-            return render(request, 'tracker/bulk_upload_results.html', context)
+            
+            # Redirect to preview page
+            return redirect('tracker:bulk_upload_preview')
     else:
         form = BulkUploadForm()
     
@@ -1271,3 +1258,231 @@ def export_non_kept_dvds(request):
         ])
     
     return response
+
+
+def bulk_upload_preview(request):
+    """Preview and correct TMDB matches before bulk creating DVDs."""
+    # Check if we have session data
+    bulk_data = request.session.get('bulk_upload_data')
+    if not bulk_data:
+        messages.error(request, 'No bulk upload data found. Please start over.')
+        return redirect('tracker:bulk_upload')
+    
+    # Check session expiry (24 hours)
+    from datetime import datetime, timedelta
+    try:
+        timestamp = datetime.fromisoformat(bulk_data['timestamp'])
+        if datetime.now() - timestamp > timedelta(hours=24):
+            messages.error(request, 'Bulk upload session expired. Please start over.')
+            del request.session['bulk_upload_data']
+            return redirect('tracker:bulk_upload')
+    except (ValueError, KeyError):
+        messages.error(request, 'Invalid session data. Please start over.')
+        del request.session['bulk_upload_data']
+        return redirect('tracker:bulk_upload')
+    
+    if request.method == 'POST':
+        # Handle different actions
+        if 'search_correction' in request.POST:
+            # Handle individual movie search correction
+            index = int(request.POST.get('match_index'))
+            query = request.POST.get('search_query', '').strip()
+            
+            if query and 0 <= index < len(bulk_data['matches']):
+                tmdb_service = TMDBService()
+                search_results = tmdb_service.search_movies(query)
+                results = search_results.get('results', [])
+                
+                # Add poster URLs to results
+                for movie in results:
+                    if movie.get('poster_path'):
+                        movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
+                    else:
+                        movie['poster_url'] = None
+                
+                context = {
+                    'search_results': results,
+                    'query': query,
+                    'match_index': index,
+                    'original_title': bulk_data['matches'][index]['original_title'],
+                    'bulk_data': bulk_data
+                }
+                return render(request, 'tracker/bulk_upload_search.html', context)
+        
+        elif 'update_match' in request.POST:
+            # Update a specific match with new TMDB data
+            index = int(request.POST.get('match_index'))
+            tmdb_id = request.POST.get('tmdb_id')
+            
+            if tmdb_id and 0 <= index < len(bulk_data['matches']):
+                tmdb_service = TMDBService()
+                movie_data = tmdb_service.get_movie_details(tmdb_id)
+                
+                if movie_data:
+                    # Update the match in session
+                    poster_url = None
+                    if movie_data.get('poster_path'):
+                        poster_url = tmdb_service.get_full_poster_url(movie_data['poster_path'])
+                    
+                    bulk_data['matches'][index].update({
+                        'tmdb_data': movie_data,
+                        'confirmed': True,
+                        'poster_url': poster_url,
+                        'error': None
+                    })
+                    
+                    request.session['bulk_upload_data'] = bulk_data
+                    messages.success(request, f'Updated match for "{bulk_data["matches"][index]["original_title"]}"')
+                else:
+                    messages.error(request, 'Could not fetch movie details from TMDB.')
+            
+            return redirect('tracker:bulk_upload_preview')
+        
+        elif 'remove_match' in request.POST:
+            # Remove a match from the list
+            index = int(request.POST.get('match_index'))
+            
+            if 0 <= index < len(bulk_data['matches']):
+                bulk_data['matches'][index]['removed'] = True
+                request.session['bulk_upload_data'] = bulk_data
+                messages.info(request, f'Removed "{bulk_data["matches"][index]["original_title"]}" from the list.')
+            
+            return redirect('tracker:bulk_upload_preview')
+        
+        elif 'restore_match' in request.POST:
+            # Restore a removed match
+            index = int(request.POST.get('match_index'))
+            
+            if 0 <= index < len(bulk_data['matches']):
+                bulk_data['matches'][index]['removed'] = False
+                request.session['bulk_upload_data'] = bulk_data
+                messages.info(request, f'Restored "{bulk_data["matches"][index]["original_title"]}" to the list.')
+            
+            return redirect('tracker:bulk_upload_preview')
+        
+        elif 'proceed' in request.POST:
+            # Proceed to final processing
+            return redirect('tracker:bulk_upload_process')
+    
+    # Calculate statistics for display
+    total_matches = len(bulk_data['matches'])
+    confirmed_matches = len([m for m in bulk_data['matches'] if m['confirmed'] and not m['removed']])
+    removed_matches = len([m for m in bulk_data['matches'] if m['removed']])
+    error_matches = len([m for m in bulk_data['matches'] if m.get('error') and not m['removed']])
+    
+    # Check for potential duplicates
+    form_defaults = bulk_data['form_defaults']
+    skip_existing = form_defaults.get('skip_existing', True)
+    
+    if skip_existing:
+        # Check existing DVDs
+        for match in bulk_data['matches']:
+            if match['tmdb_data'] and not match['removed']:
+                tmdb_id = match['tmdb_data'].get('id')
+                if tmdb_id and DVD.objects.filter(tmdb_id=tmdb_id).exists():
+                    existing_dvd = DVD.objects.get(tmdb_id=tmdb_id)
+                    match['existing_dvd'] = existing_dvd.name
+                else:
+                    match['existing_dvd'] = None
+    
+    context = {
+        'bulk_data': bulk_data,
+        'total_matches': total_matches,
+        'confirmed_matches': confirmed_matches,
+        'removed_matches': removed_matches,
+        'error_matches': error_matches,
+        'can_proceed': confirmed_matches > 0,
+    }
+    
+    return render(request, 'tracker/bulk_upload_preview.html', context)
+
+
+def bulk_upload_process(request):
+    """Final processing - create DVDs from confirmed matches."""
+    # Check if we have session data
+    bulk_data = request.session.get('bulk_upload_data')
+    if not bulk_data:
+        messages.error(request, 'No bulk upload data found. Please start over.')
+        return redirect('tracker:bulk_upload')
+    
+    # Only allow POST to prevent accidental processing
+    if request.method != 'POST':
+        return redirect('tracker:bulk_upload_preview')
+    
+    form_defaults = bulk_data['form_defaults']
+    tmdb_service = TMDBService()
+    
+    results = {
+        'added': [],
+        'skipped': [],
+        'errors': []
+    }
+    
+    for match in bulk_data['matches']:
+        # Skip removed matches or matches without TMDB data
+        if match['removed'] or not match['tmdb_data'] or not match['confirmed']:
+            continue
+        
+        try:
+            movie_data = match['tmdb_data']
+            tmdb_id = movie_data.get('id')
+            
+            # Check if movie already exists (if skip_existing is enabled)
+            if form_defaults['skip_existing'] and DVD.objects.filter(tmdb_id=tmdb_id).exists():
+                existing_dvd = DVD.objects.get(tmdb_id=tmdb_id)
+                results['skipped'].append(f"{match['original_title']} (already have: {existing_dvd.name})")
+                continue
+            
+            # Format movie data for DVD creation
+            tmdb_formatted_data = tmdb_service.format_movie_data(movie_data)
+            poster_path = tmdb_formatted_data.pop('poster_path', None)
+            
+            # Create DVD entry
+            dvd = DVD.objects.create(
+                name=tmdb_formatted_data['name'],
+                overview=tmdb_formatted_data['overview'],
+                release_year=tmdb_formatted_data['release_year'],
+                runtime=tmdb_formatted_data['runtime'],
+                genres=tmdb_formatted_data['genres'],
+                tmdb_id=tmdb_formatted_data['tmdb_id'],
+                imdb_id=tmdb_formatted_data['imdb_id'],
+                rating=tmdb_formatted_data['rating'],
+                status=form_defaults['default_status'],
+                media_type=form_defaults['default_media_type'],
+                is_tartan_dvd=form_defaults['default_is_tartan_dvd'],
+                is_box_set=form_defaults['default_is_box_set'],
+                box_set_name=form_defaults['default_box_set_name'] if form_defaults['default_is_box_set'] else '',
+                is_unopened=form_defaults['default_is_unopened'],
+                is_unwatched=form_defaults['default_is_unwatched'],
+                storage_box=form_defaults['default_storage_box'] if form_defaults['default_status'] == 'kept' else ''
+            )
+            
+            # Download poster if available
+            if poster_path:
+                full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                tmdb_service.download_poster(dvd, full_poster_url)
+            
+            results['added'].append(dvd.name)
+            
+        except Exception as e:
+            results['errors'].append(f"Error processing '{match['original_title']}': {str(e)}")
+    
+    # Clear session data
+    del request.session['bulk_upload_data']
+    
+    # Show results to user
+    if results['added']:
+        messages.success(request, f"Successfully added {len(results['added'])} movies to your collection.")
+    
+    if results['skipped']:
+        messages.info(request, f"Skipped {len(results['skipped'])} movies already in your collection.")
+    
+    if results['errors']:
+        messages.error(request, f"Encountered {len(results['errors'])} errors during upload.")
+    
+    # Render results page
+    context = {
+        'results': results,
+        'total_processed': len([m for m in bulk_data['matches'] if m['confirmed'] and not m['removed']])
+    }
+    return render(request, 'tracker/bulk_upload_results.html', context)

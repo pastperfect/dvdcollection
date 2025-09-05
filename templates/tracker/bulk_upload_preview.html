@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk Upload Preview{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-eye"></i> Bulk Upload Preview</h1>
+                <a href="{% url 'tracker:bulk_upload' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Start Over
+                </a>
+            </div>
+
+            <!-- Statistics Summary -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h2 class="card-title">{{ total_matches }}</h2>
+                            <p class="card-text">Total Movies</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h2 class="card-title">{{ confirmed_matches }}</h2>
+                            <p class="card-text">Ready to Add</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h2 class="card-title">{{ error_matches }}</h2>
+                            <p class="card-text">Need Attention</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center">
+                            <h2 class="card-title">{{ removed_matches }}</h2>
+                            <p class="card-text">Removed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">Review Your Matches</h5>
+                            <p class="text-muted mb-0">Check each movie match below and make corrections if needed.</p>
+                        </div>
+                        <div>
+                            {% if can_proceed %}
+                            <form method="post" action="{% url 'tracker:bulk_upload_process' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" name="proceed" class="btn btn-success btn-lg"
+                                        onclick="return confirm('Create {{ confirmed_matches }} DVD entries in your collection?')">
+                                    <i class="bi bi-check-circle"></i> Create {{ confirmed_matches }} DVDs
+                                </button>
+                            </form>
+                            {% else %}
+                            <button type="button" class="btn btn-success btn-lg" disabled>
+                                <i class="bi bi-exclamation-triangle"></i> Fix errors to proceed
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Movie Matches -->
+            <div class="row g-3">
+                {% for match in bulk_data.matches %}
+                <div class="col-lg-6">
+                    <div class="card h-100 {% if match.removed %}bg-light opacity-75{% elif match.error %}border-warning{% elif match.existing_dvd %}border-info{% else %}border-success{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">{{ match.original_title }}</h6>
+                                {% if match.error %}
+                                <small class="text-warning"><i class="bi bi-exclamation-triangle"></i> {{ match.error }}</small>
+                                {% elif match.existing_dvd %}
+                                <small class="text-info"><i class="bi bi-info-circle"></i> Already have: {{ match.existing_dvd }}</small>
+                                {% elif match.removed %}
+                                <small class="text-muted"><i class="bi bi-eye-slash"></i> Removed from list</small>
+                                {% else %}
+                                <small class="text-success"><i class="bi bi-check-circle"></i> Ready to add</small>
+                                {% endif %}
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                {% if not match.removed %}
+                                    {% if match.tmdb_data %}
+                                    <button type="button" class="btn btn-outline-primary" onclick="searchForMovie({{ forloop.counter0 }}, '{{ match.original_title|escapejs }}')">
+                                        <i class="bi bi-search"></i> Change
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-warning" onclick="searchForMovie({{ forloop.counter0 }}, '{{ match.original_title|escapejs }}')">
+                                        <i class="bi bi-search"></i> Find Movie
+                                    </button>
+                                    {% endif %}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="match_index" value="{{ forloop.counter0 }}">
+                                        <button type="submit" name="remove_match" class="btn btn-outline-danger" title="Remove from list">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="match_index" value="{{ forloop.counter0 }}">
+                                        <button type="submit" name="restore_match" class="btn btn-outline-success" title="Restore to list">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if match.tmdb_data and not match.removed %}
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-4">
+                                    {% if match.poster_url %}
+                                        <img src="{{ match.poster_url }}" alt="{{ match.tmdb_data.title }}" class="img-fluid rounded">
+                                    {% else %}
+                                        <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 150px;">
+                                            <i class="bi bi-film text-muted" style="font-size: 2rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-8">
+                                    <h6>{{ match.tmdb_data.title }}</h6>
+                                    {% if match.tmdb_data.release_date %}
+                                    <p class="text-muted small">{{ match.tmdb_data.release_date|slice:":4" }}</p>
+                                    {% endif %}
+                                    {% if match.tmdb_data.overview %}
+                                    <p class="small">{{ match.tmdb_data.overview|truncatewords:15 }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">TMDB ID: {{ match.tmdb_data.id }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif match.removed %}
+                        <div class="card-body text-center text-muted">
+                            <i class="bi bi-eye-slash" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">Removed from upload list</p>
+                        </div>
+                        {% else %}
+                        <div class="card-body text-center">
+                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-1">No movie found</p>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="searchForMovie({{ forloop.counter0 }}, '{{ match.original_title|escapejs }}')">
+                                <i class="bi bi-search"></i> Search Manually
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Proceed Button (bottom) -->
+            {% if can_proceed %}
+            <div class="text-center mt-4">
+                <form method="post" action="{% url 'tracker:bulk_upload_process' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" name="proceed" class="btn btn-success btn-lg"
+                            onclick="return confirm('Create {{ confirmed_matches }} DVD entries in your collection?')">
+                        <i class="bi bi-check-circle"></i> Create {{ confirmed_matches }} DVDs
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search for Correct Movie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="searchForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="match_index" id="searchMatchIndex">
+                    
+                    <div class="mb-3">
+                        <label for="searchQuery" class="form-label">Movie Title</label>
+                        <input type="text" class="form-control" name="search_query" id="searchQuery" 
+                               placeholder="Enter movie title..." autocomplete="off">
+                    </div>
+                    
+                    <div id="searchResults" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="search_correction" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search TMDB
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentMatchIndex = -1;
+
+function searchForMovie(index, originalTitle) {
+    currentMatchIndex = index;
+    document.getElementById('searchMatchIndex').value = index;
+    document.getElementById('searchQuery').value = originalTitle;
+    document.getElementById('searchModalLabel').textContent = 'Search for: ' + originalTitle;
+    document.getElementById('searchResults').innerHTML = '';
+    
+    new bootstrap.Modal(document.getElementById('searchModal')).show();
+}
+
+// AJAX search functionality
+document.getElementById('searchQuery').addEventListener('input', function() {
+    const query = this.value.trim();
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+    
+    // Debounce the search
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+        fetch(`{% url 'tracker:search_tmdb_ajax' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                displaySearchResults(data.results);
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+            });
+    }, 300);
+});
+
+function displaySearchResults(results) {
+    const container = document.getElementById('searchResults');
+    
+    if (results.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No movies found</p>';
+        return;
+    }
+    
+    let html = '<div class="row g-2">';
+    results.forEach(movie => {
+        const posterUrl = movie.poster_url || '';
+        const posterHtml = posterUrl 
+            ? `<img src="${posterUrl}" alt="${movie.title}" class="img-fluid rounded" style="height: 120px; object-fit: cover;">`
+            : `<div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 120px;"><i class="bi bi-film text-muted"></i></div>`;
+        
+        html += `
+            <div class="col-md-6">
+                <div class="card search-result-card" style="cursor: pointer;" onclick="selectMovie(${movie.id})">
+                    <div class="card-body p-2">
+                        <div class="row g-2">
+                            <div class="col-4">
+                                ${posterHtml}
+                            </div>
+                            <div class="col-8">
+                                <h6 class="mb-1">${movie.title}</h6>
+                                <small class="text-muted">${movie.release_date ? movie.release_date.substring(0, 4) : ''}</small>
+                                <p class="small mb-0">${movie.overview}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+function selectMovie(tmdbId) {
+    // Create a form to update the match
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.innerHTML = `
+        {% csrf_token %}
+        <input type="hidden" name="match_index" value="${currentMatchIndex}">
+        <input type="hidden" name="tmdb_id" value="${tmdbId}">
+        <input type="hidden" name="update_match" value="1">
+    `;
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Style for search result cards
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .search-result-card:hover {
+            border-color: var(--bs-primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}
