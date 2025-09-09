@@ -119,7 +119,7 @@
                             
                             <!-- Special Feature Badges -->
                             {% for badge in dvd.get_special_features_badges %}
-                                <span class="badge {{ badge.class }}">{{ badge.text }}</span>
+                                <span class="badge {{ badge.class }}"{% if badge.style %} style="{{ badge.style }}"{% endif %}>{{ badge.text }}</span>
                             {% endfor %}
                         </div>
                     </div>

@@ -148,6 +148,12 @@ class DVD(models.Model):
         }
         return classes.get(self.media_type, 'secondary')
     
+    def has_torrents(self):
+        """Check if this DVD has available torrent links."""
+        # For performance, we only check if IMDB ID exists
+        # The actual torrent availability is checked in detail view
+        return bool(self.imdb_id)
+    
     def get_special_features_badges(self):
         """Return a list of special feature badges."""
         badges = []
@@ -161,6 +167,8 @@ class DVD(models.Model):
             badges.append({'text': 'Unwatched', 'class': 'bg-warning'})
         if self.copy_number > 1:
             badges.append({'text': f'Copy #{self.copy_number}', 'class': 'bg-secondary'})
+        if self.has_torrents():
+            badges.append({'text': 'Torrent', 'class': 'text-white', 'style': 'background-color: #32cd32;'})
         return badges
     
     def get_duplicate_copies(self):
