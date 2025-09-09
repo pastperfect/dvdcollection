@@ -168,7 +168,7 @@ class DVD(models.Model):
         if self.copy_number > 1:
             badges.append({'text': f'Copy #{self.copy_number}', 'class': 'bg-secondary'})
         if self.has_torrents():
-            badges.append({'text': 'Torrent', 'class': 'text-white', 'style': 'background-color: #32cd32;'})
+            badges.append({'text': 'Torrent', 'class': 'text-white', 'style': 'background-color: #16a34a;'})
         return badges
     
     def get_duplicate_copies(self):
