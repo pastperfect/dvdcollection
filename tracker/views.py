@@ -1312,6 +1312,93 @@ def export_non_kept_dvds(request):
     return response
 
 
+def export_complete_collection(request):
+    """Export complete collection data to CSV with comprehensive information."""
+    # Get all DVDs in the collection
+    all_dvds = DVD.objects.all().order_by('-created_at')
+    
+    # Generate filename with current date
+    current_date = date.today().strftime('%Y-%m-%d')
+    filename = f"CollectionExport_{current_date}.csv"
+    
+    # Create the HttpResponse object with the appropriate CSV header
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+    
+    writer = csv.writer(response)
+    
+    # Write header row with all requested fields
+    writer.writerow([
+        'Movie Name',
+        'Status', 
+        'Release Year',
+        'Runtime',
+        'Tartan Release',
+        'Media Type',
+        'Box Set',
+        'Storage Box',
+        'Location',
+        'Box Set Name',
+        'Date Added',
+        'Date Updated',
+        'Torrent File Links',
+        'Director',
+        'IMDB ID',
+        'TMDB ID',
+        'Copy Number',
+        'Duplicate Notes'
+    ])
+    
+    # Initialize YTS service for getting torrent links
+    yts_service = YTSService()
+    
+    for dvd in all_dvds:
+        # Get torrent information if IMDB ID is available
+        torrent_links = ''
+        
+        if dvd.imdb_id:
+            try:
+                torrents = yts_service.get_quality_torrents(dvd.imdb_id, ['720p', '1080p'])
+                
+                # Build torrent links string
+                torrent_parts = []
+                for torrent in torrents:
+                    quality = torrent.get('quality', 'Unknown')
+                    url = torrent.get('url', '')
+                    if url:
+                        torrent_parts.append(f"{quality}: {url}")
+                
+                torrent_links = ' | '.join(torrent_parts)
+            except Exception as e:
+                logger.error(f"Error fetching torrents for {dvd.name}: {e}")
+                torrent_links = 'Error fetching torrents'
+        
+        writer.writerow([
+            dvd.name,
+            dvd.get_status_display(),
+            dvd.release_year or '',
+            f"{dvd.runtime} minutes" if dvd.runtime else '',
+            'Yes' if dvd.is_tartan_dvd else 'No',
+            dvd.get_media_type_display(),
+            'Yes' if dvd.is_box_set else 'No',
+            dvd.storage_box or '',
+            dvd.location or '',
+            dvd.box_set_name or '',
+            dvd.created_at.strftime('%Y-%m-%d %H:%M:%S') if dvd.created_at else '',
+            dvd.updated_at.strftime('%Y-%m-%d %H:%M:%S') if dvd.updated_at else '',
+            torrent_links,
+            dvd.director or '',
+            dvd.imdb_id or '',
+            dvd.tmdb_id or '',
+            dvd.copy_number or 1,
+            dvd.duplicate_notes or ''
+        ])
+    
+    return response
+
+
 def bulk_upload_preview(request):
     """Preview and correct TMDB matches before bulk creating DVDs."""
     # Check if we have session data
