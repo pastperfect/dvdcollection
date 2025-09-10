@@ -76,6 +76,7 @@ class DVD(models.Model):
     revenue = models.BigIntegerField(null=True, blank=True, help_text="Movie revenue in USD")
     production_companies = models.TextField(blank=True, help_text="Production companies, comma-separated")
     tagline = models.CharField(max_length=255, blank=True)
+    director = models.CharField(max_length=255, blank=True, help_text="Director of the movie")
     
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)

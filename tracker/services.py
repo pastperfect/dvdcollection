@@ -152,6 +152,11 @@ class TMDBService:
             if uk_certification:
                 data['uk_certification'] = uk_certification
             
+            # Also fetch director information
+            director = self.get_movie_director(movie_id)
+            if director:
+                data['director'] = director
+            
             # Cache for 24 hours
             cache.set(cache_key, data, 86400)
             return data
@@ -235,6 +240,45 @@ class TMDBService:
                         return certification.strip()
         
         return None
+    
+    def get_movie_director(self, movie_id):
+        """Get the director of a movie from the credits."""
+        if not self.api_key:
+            logger.warning("TMDB API key not configured")
+            return None
+            
+        cache_key = f"tmdb_director_{movie_id}"
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            return cached_result
+            
+        url = f"{self.base_url}/movie/{movie_id}/credits"
+        params = {
+            'api_key': self.api_key
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Look for the director in the crew
+            crew = data.get('crew', [])
+            directors = []
+            for person in crew:
+                if person.get('job') == 'Director':
+                    directors.append(person.get('name'))
+            
+            # Join multiple directors with commas
+            director_string = ', '.join(directors) if directors else None
+            
+            # Cache for 24 hours
+            cache.set(cache_key, director_string, 86400)
+            return director_string
+            
+        except requests.RequestException as e:
+            logger.error(f"TMDB director API error: {e}")
+            return None
     
     def get_movie_images(self, movie_id):
         """Get all images for a movie from TMDB."""
@@ -345,6 +389,7 @@ class TMDBService:
             'revenue': movie_data.get('revenue'),
             'production_companies': production_companies,
             'tagline': movie_data.get('tagline', ''),
+            'director': movie_data.get('director', ''),
         }
     
     def format_movie_data_for_refresh(self, movie_data):
@@ -403,6 +448,9 @@ class TMDBService:
             
         if movie_data.get('tagline'):
             formatted_data['tagline'] = movie_data.get('tagline')
+            
+        if movie_data.get('director'):
+            formatted_data['director'] = movie_data.get('director')
         
         return formatted_data
     

@@ -188,6 +188,7 @@ def dvd_add(request):
                             movie_data['poster_url'] = None
                         # Ensure original_language is present
                         movie_data['original_language'] = movie_data.get('original_language', '')
+                        # Director is already included in get_movie_details response
                         results = [movie_data]
                     context = {
                         'search_form': search_form,
@@ -203,16 +204,26 @@ def dvd_add(request):
                     # Normal title search
                     search_results = tmdb_service.search_movies(query)
                     results = search_results.get('results', [])
-                    for movie in results:
+                    
+                    # Enhance results with director information
+                    enhanced_results = []
+                    for movie in results[:10]:  # Limit to 10 to avoid too many API calls
                         if movie.get('poster_path'):
                             movie['poster_url'] = tmdb_service.get_full_poster_url(movie['poster_path'])
                         else:
                             movie['poster_url'] = None
                         # Ensure original_language is present
                         movie['original_language'] = movie.get('original_language', '')
+                        
+                        # Fetch director information
+                        director = tmdb_service.get_movie_director(movie.get('id'))
+                        movie['director'] = director if director else ''
+                        
+                        enhanced_results.append(movie)
+                    
                     context = {
                         'search_form': search_form,
-                        'search_results': results,
+                        'search_results': enhanced_results,
                         'query': query,
                         'tmdb_service': tmdb_service,
                         'last_storage_box': last_storage_box,
@@ -398,12 +409,17 @@ def search_tmdb_ajax(request):
         if movie.get('poster_path'):
             poster_url = tmdb_service.get_full_poster_url(movie['poster_path'])
         
+        # Fetch director information
+        director = tmdb_service.get_movie_director(movie.get('id'))
+        
         results.append({
             'id': movie.get('id'),
             'title': movie.get('title'),
             'release_date': movie.get('release_date'),
             'poster_url': poster_url,
             'overview': movie.get('overview', '')[:200] + '...' if len(movie.get('overview', '')) > 200 else movie.get('overview', ''),
+            'director': director if director else '',
+            'original_language': movie.get('original_language', ''),
         })
     
     return JsonResponse({'results': results})

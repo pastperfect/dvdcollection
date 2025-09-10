@@ -150,7 +150,15 @@
                                 <div class="col-8">
                                     <h6>{{ match.tmdb_data.title }}</h6>
                                     {% if match.tmdb_data.release_date %}
-                                    <p class="text-muted small">{{ match.tmdb_data.release_date|slice:":4" }}</p>
+                                    <p class="text-muted small">
+                                        {{ match.tmdb_data.release_date|slice:":4" }}
+                                        {% if match.tmdb_data.original_language %}
+                                            &middot; {{ match.tmdb_data.original_language|upper }}
+                                        {% endif %}
+                                        {% if match.tmdb_data.director %}
+                                            &middot; {{ match.tmdb_data.director }}
+                                        {% endif %}
+                                    </p>
                                     {% endif %}
                                     {% if match.tmdb_data.overview %}
                                     <p class="small">{{ match.tmdb_data.overview|truncatewords:15 }}</p>
@@ -304,7 +312,11 @@ function displaySearchResults(results) {
                             </div>
                             <div class="col-8">
                                 <h6 class="mb-1">${movie.title}</h6>
-                                <small class="text-muted">${movie.release_date ? movie.release_date.substring(0, 4) : ''}</small>
+                                <small class="text-muted">
+                                    ${movie.release_date ? movie.release_date.substring(0, 4) : ''}
+                                    ${movie.original_language ? ' • ' + movie.original_language.toUpperCase() : ''}
+                                    ${movie.director ? ' • ' + movie.director : ''}
+                                </small>
                                 <p class="small mb-0">${movie.overview}</p>
                             </div>
                         </div>

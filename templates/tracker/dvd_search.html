@@ -32,6 +32,9 @@
                                         {% if movie.original_language %}
                                             &middot; {{ movie.original_language|upper }}
                                         {% endif %}
+                                        {% if movie.director %}
+                                            &middot; {{ movie.director }}
+                                        {% endif %}
                                     </small>
                                 {% endif %}
                                 

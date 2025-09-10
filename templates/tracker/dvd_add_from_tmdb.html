@@ -40,6 +40,18 @@
                         </div>
                     {% endif %}
                     
+                    {% if movie_data.original_language %}
+                        <div class="col-sm-6 mb-2">
+                            <strong>Language:</strong> {{ movie_data.original_language|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    {% if movie_data.director %}
+                        <div class="col-sm-6 mb-2">
+                            <strong>Director:</strong> {{ movie_data.director }}
+                        </div>
+                    {% endif %}
+                    
                     {% if movie_data.vote_average %}
                         <div class="col-sm-6 mb-2">
                             <strong>Rating:</strong> 
