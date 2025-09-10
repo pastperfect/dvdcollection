@@ -40,7 +40,7 @@
                 <h6 class="mb-0">Manual Entry</h6>
             </div>
             <div class="card-body">
-                <form method="post" action="{% url 'tracker:dvd_add' %}">
+                <form method="post" action="{% url 'tracker:dvd_add' %}" enctype="multipart/form-data">>
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="manual_name" class="form-label">Movie Title</label>
@@ -76,6 +76,12 @@
                         <label for="manual_imdb_id" class="form-label">IMDB ID (Optional)</label>
                         <input type="text" class="form-control" id="manual_imdb_id" name="imdb_id" placeholder="tt1234567" pattern="tt[0-9]+">
                         <div class="form-text">Enter IMDB ID in format: tt1234567</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="manual_poster" class="form-label">Cover Image (Optional)</label>
+                        <input type="file" class="form-control" id="manual_poster" name="poster" accept="image/*">
+                        <div class="form-text">Upload a cover image for this DVD (max 5MB, JPEG/PNG/GIF/WebP)</div>
                     </div>
                     
                     <!-- DVD Specific Fields -->

@@ -233,7 +233,7 @@ def dvd_add(request):
                     return render(request, 'tracker/dvd_search.html', context)
         else:
             # Manual form submission
-            dvd_form = DVDForm(request.POST)
+            dvd_form = DVDForm(request.POST, request.FILES)
             if dvd_form.is_valid():
                 dvd = dvd_form.save(commit=False)
                 dvd.is_downloaded = False
@@ -290,7 +290,7 @@ def dvd_add_from_tmdb(request, tmdb_id):
     
     try:
         if request.method == 'POST':
-            form = DVDForm(request.POST)
+            form = DVDForm(request.POST, request.FILES)
             if form.is_valid():
                 dvd = form.save(commit=False)
                 # Fill in TMDB data (excluding tmdb_id since it's already set by the form)
@@ -301,8 +301,8 @@ def dvd_add_from_tmdb(request, tmdb_id):
                     setattr(dvd, key, value)
                 dvd.is_downloaded = False
                 dvd.save()
-                # Download poster
-                if poster_path:
+                # Download poster only if no custom poster was uploaded
+                if poster_path and not dvd.poster:
                     full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                     tmdb_service.download_poster(dvd, full_poster_url)
                 messages.success(request, f'"{dvd.name}" has been added to your collection.')
@@ -347,7 +347,7 @@ def dvd_edit(request, pk):
     dvd = get_object_or_404(DVD, pk=pk)
     
     if request.method == 'POST':
-        form = DVDForm(request.POST, instance=dvd)
+        form = DVDForm(request.POST, request.FILES, instance=dvd)
         if form.is_valid():
             form.save()
             messages.success(request, f'"{dvd.name}" has been updated.')

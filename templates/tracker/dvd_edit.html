@@ -20,7 +20,7 @@
             </div>
         </div>
         
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
             <!-- Section 1: Basic Movie Information -->
@@ -272,7 +272,7 @@
                     <h5 class="mb-0"><i class="bi bi-image"></i> Poster</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row align-items-center">
+                    <div class="row">
                         <div class="col-md-3">
                             {% if dvd.poster %}
                                 <img src="{{ dvd.poster.url }}" alt="{{ dvd.name }}" class="img-fluid rounded mb-2" style="max-height: 200px;">
@@ -283,16 +283,29 @@
                             {% endif %}
                         </div>
                         <div class="col-md-9">
+                            <div class="mb-3">
+                                <label for="{{ form.poster.id_for_label }}" class="form-label">Upload New Cover Image</label>
+                                {{ form.poster }}
+                                {% if form.poster.errors %}
+                                    <div class="text-danger">{{ form.poster.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">Upload a new cover image (max 5MB, JPEG/PNG/GIF/WebP). This will replace the current poster.</div>
+                            </div>
+                            
                             {% if dvd.tmdb_id %}
-                                <p class="text-muted mb-3">You can change the poster by selecting from available options on TMDB.</p>
-                                <a href="{% url 'tracker:dvd_change_poster' dvd.pk %}" class="btn btn-outline-info">
-                                    <i class="bi bi-images"></i> Change Poster
-                                </a>
+                                <div class="border-top pt-3">
+                                    <p class="text-muted mb-2">Alternatively, you can select from available TMDB posters:</p>
+                                    <a href="{% url 'tracker:dvd_change_poster' dvd.pk %}" class="btn btn-outline-info">
+                                        <i class="bi bi-images"></i> Browse TMDB Posters
+                                    </a>
+                                </div>
                             {% else %}
-                                <p class="text-muted mb-0">
-                                    <i class="bi bi-info-circle"></i>
-                                    Poster management requires a TMDB match. Add a TMDB ID to enable poster selection.
-                                </p>
+                                <div class="border-top pt-3">
+                                    <p class="text-muted mb-0">
+                                        <i class="bi bi-info-circle"></i>
+                                        For TMDB poster selection, add a TMDB ID to enable browsing available posters.
+                                    </p>
+                                </div>
                             {% endif %}
                         </div>
                     </div>

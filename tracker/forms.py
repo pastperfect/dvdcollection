@@ -60,7 +60,7 @@ class DVDForm(forms.ModelForm):
     class Meta:
         model = DVD
         fields = [
-            'tmdb_id', 'name', 'status', 'media_type', 'overview', 'imdb_id',
+            'tmdb_id', 'name', 'status', 'media_type', 'overview', 'imdb_id', 'poster',
             'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box', 'location',
             'copy_number', 'duplicate_notes'
         ]
@@ -87,6 +87,11 @@ class DVDForm(forms.ModelForm):
                 'placeholder': 'IMDB ID (e.g., tt1234567)',
                 'pattern': 'tt[0-9]+',
                 'title': 'IMDB ID should start with "tt" followed by numbers'
+            }),
+            'poster': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+                'id': 'id_poster'
             }),
             'is_tartan_dvd': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
@@ -138,6 +143,26 @@ class DVDForm(forms.ModelForm):
             self.fields['location'].widget.attrs['style'] = ''
         else:
             self.fields['location'].widget.attrs['style'] = 'display: none;'
+    
+    def clean_poster(self):
+        """Validate uploaded poster image."""
+        poster = self.cleaned_data.get('poster')
+        
+        if poster:
+            # Check file size (max 5MB)
+            if poster.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Image file too large. Maximum size is 5MB.')
+            
+            # Check file type
+            if not poster.content_type.startswith('image/'):
+                raise forms.ValidationError('File must be an image.')
+            
+            # Check specific image formats
+            allowed_formats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if poster.content_type not in allowed_formats:
+                raise forms.ValidationError('Unsupported image format. Please use JPEG, PNG, GIF, or WebP.')
+        
+        return poster
     
     def clean_location(self):
         """Validate location field for uniqueness when status is unboxed."""
