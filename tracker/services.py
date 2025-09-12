@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 import logging
 import os
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,9 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return {'results': [], 'total_results': 0}
             
-        cache_key = f"tmdb_search_{query}_{page}"
+        # Create a safe cache key by hashing the query
+        query_hash = hashlib.md5(query.encode('utf-8')).hexdigest()
+        cache_key = f"tmdb_search_{query_hash}_{page}"
         cached_result = cache.get(cache_key)
         if cached_result:
             return cached_result
