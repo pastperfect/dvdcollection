@@ -391,3 +391,16 @@ class BulkUploadForm(forms.Form):
         }),
         help_text='Default location for unboxed movies'
     )
+
+
+class BulkMarkDownloadedForm(forms.Form):
+    """Form for bulk marking DVDs as downloaded."""
+    movie_list = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 15,
+            'placeholder': 'Enter movie titles, one per line:\n\nThe Matrix\nInception\nInterstellar\nThe Dark Knight\nPulp Fiction',
+            'style': 'font-family: monospace;'
+        }),
+        help_text='Enter one movie title per line. We\'ll search your collection for each movie and mark them as downloaded.'
+    )

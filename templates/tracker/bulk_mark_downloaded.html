@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Mark as Downloaded{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-download"></i> Bulk Mark as Downloaded</h1>
+                <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Collection
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Mark Multiple Movies as Downloaded</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>How it works:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Enter one movie title per line in the text area below</li>
+                            <li>We'll search your collection for each movie title</li>
+                            <li>Found movies will have their media type changed to "Downloaded"</li>
+                            <li>Exact matches are preferred, but we'll also try fuzzy matching</li>
+                            <li>Results will show which movies were updated, already downloaded, or not found</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.movie_list.id_for_label }}" class="form-label">
+                                <i class="bi bi-list-ul me-1"></i>Movie List
+                            </label>
+                            {{ form.movie_list }}
+                            <div class="form-text">{{ form.movie_list.help_text }}</div>
+                            {% if form.movie_list.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.movie_list.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-download"></i> Mark Movies as Downloaded
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

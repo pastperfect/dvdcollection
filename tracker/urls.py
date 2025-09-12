@@ -14,6 +14,7 @@ urlpatterns = [
     path('bulk-upload/preview/', views.bulk_upload_preview, name='bulk_upload_preview'),
     path('bulk-upload/process/', views.bulk_upload_process, name='bulk_upload_process'),
     path('bulk-edit/', views.bulk_edit, name='bulk_edit'),
+    path('bulk-mark-downloaded/', views.bulk_mark_downloaded, name='bulk_mark_downloaded'),
     path('dvd/<int:pk>/edit/', views.dvd_edit, name='dvd_edit'),
     path('dvd/<int:pk>/delete/', views.dvd_delete, name='dvd_delete'),
     path('dvd/<int:pk>/fix-tmdb/', views.fix_tmdb_match, name='fix_tmdb_match'),

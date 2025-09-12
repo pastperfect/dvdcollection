@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count, Min, Max, Avg, Sum
 from .models import DVD, AppSettings
-from .forms import DVDForm, DVDSearchForm, DVDFilterForm, BulkUploadForm
+from .forms import DVDForm, DVDSearchForm, DVDFilterForm, BulkUploadForm, BulkMarkDownloadedForm
 from .services import TMDBService, YTSService
 import json
 import csv
@@ -1642,3 +1642,90 @@ def bulk_upload_process(request):
         'total_processed': len([m for m in bulk_data['matches'] if m['confirmed'] and not m['removed']])
     }
     return render(request, 'tracker/bulk_upload_results.html', context)
+
+
+def bulk_mark_downloaded(request):
+    """Bulk mark DVDs as downloaded by searching for movie titles."""
+    if request.method == 'POST':
+        form = BulkMarkDownloadedForm(request.POST)
+        if form.is_valid():
+            movie_list = form.cleaned_data['movie_list']
+            
+            # Split the movie list into individual titles
+            movie_titles = [title.strip() for title in movie_list.split('\n') if title.strip()]
+            
+            results = {
+                'found_and_updated': [],
+                'already_downloaded': [],
+                'not_found': [],
+                'multiple_matches': []
+            }
+            
+            for title in movie_titles:
+                try:
+                    # Search for exact matches first
+                    exact_matches = DVD.objects.filter(name__iexact=title)
+                    
+                    if exact_matches.count() == 1:
+                        dvd = exact_matches.first()
+                        if dvd.media_type == 'download':
+                            results['already_downloaded'].append(dvd.name)
+                        else:
+                            dvd.media_type = 'download'
+                            dvd.save()
+                            results['found_and_updated'].append(dvd.name)
+                    elif exact_matches.count() > 1:
+                        # Multiple exact matches found
+                        results['multiple_matches'].append({
+                            'title': title,
+                            'matches': [{'name': dvd.name, 'id': dvd.id, 'status': dvd.get_status_display()} for dvd in exact_matches]
+                        })
+                    else:
+                        # Try fuzzy search with contains
+                        fuzzy_matches = DVD.objects.filter(name__icontains=title)
+                        
+                        if fuzzy_matches.count() == 1:
+                            dvd = fuzzy_matches.first()
+                            if dvd.media_type == 'download':
+                                results['already_downloaded'].append(dvd.name)
+                            else:
+                                dvd.media_type = 'download'
+                                dvd.save()
+                                results['found_and_updated'].append(dvd.name)
+                        elif fuzzy_matches.count() > 1:
+                            # Multiple fuzzy matches found
+                            results['multiple_matches'].append({
+                                'title': title,
+                                'matches': [{'name': dvd.name, 'id': dvd.id, 'status': dvd.get_status_display()} for dvd in fuzzy_matches]
+                            })
+                        else:
+                            # No matches found
+                            results['not_found'].append(title)
+                            
+                except Exception as e:
+                    logger.error(f"Error processing '{title}': {e}")
+                    results['not_found'].append(f"{title} (Error: {str(e)})")
+            
+            # Show results to user
+            if results['found_and_updated']:
+                messages.success(request, f"Successfully marked {len(results['found_and_updated'])} movies as downloaded.")
+            
+            if results['already_downloaded']:
+                messages.info(request, f"{len(results['already_downloaded'])} movies were already marked as downloaded.")
+            
+            if results['not_found']:
+                messages.warning(request, f"{len(results['not_found'])} movies could not be found in your collection.")
+                
+            if results['multiple_matches']:
+                messages.warning(request, f"{len(results['multiple_matches'])} movie titles had multiple matches. Review the results below.")
+            
+            # Render results page
+            context = {
+                'results': results,
+                'total_processed': len(movie_titles)
+            }
+            return render(request, 'tracker/bulk_mark_downloaded_results.html', context)
+    else:
+        form = BulkMarkDownloadedForm()
+    
+    return render(request, 'tracker/bulk_mark_downloaded.html', {'form': form})
