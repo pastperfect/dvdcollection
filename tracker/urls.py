@@ -30,5 +30,6 @@ urlpatterns = [
     path('api/refresh-progress/', views.refresh_progress, name='refresh_progress'),
     path('system-admin/', views.admin_settings, name='admin_settings'),
     path('system-admin/export-non-kept/', views.export_non_kept_dvds, name='export_non_kept_dvds'),
+    path('system-admin/export-disposed/', views.export_disposed_for_download, name='export_disposed_for_download'),
     path('system-admin/export-complete/', views.export_complete_collection, name='export_complete_collection'),
 ]

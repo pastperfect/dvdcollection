@@ -1251,6 +1251,72 @@ def export_complete_collection(request):
     return response
 
 
+def export_disposed_for_download(request):
+    """Export disposed DVDs (excluding downloaded) with torrent links to CSV."""
+    
+    # Filter DVDs: Status = 'disposed' AND Media Type != 'downloaded'
+    disposed_dvds = DVD.objects.filter(
+        status='disposed'
+    ).exclude(
+        media_type='downloaded'
+    ).order_by('name')
+    
+    # Generate filename with current date
+    current_date = date.today().strftime('%Y-%m-%d')
+    filename = f"DisposedDVDs_{current_date}.csv"
+    
+    # Create the HttpResponse object with the appropriate CSV header
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
+    
+    writer = csv.writer(response)
+    
+    # Write header row
+    writer.writerow([
+        'Movie Name',
+        'Status', 
+        '720p Torrent Link',
+        '1080p Torrent Link'
+    ])
+    
+    # Initialize YTS service for torrent links
+    yts_service = YTSService()
+    
+    # Write data rows
+    for dvd in disposed_dvds:
+        # Get torrent links
+        torrent_720p = ''
+        torrent_1080p = ''
+        
+        if dvd.imdb_id:
+            try:
+                # Get torrents for this movie
+                torrents = yts_service.get_movie_torrents(dvd.imdb_id)
+                
+                # Extract specific quality links
+                for torrent in torrents:
+                    quality = torrent.get('quality', '').lower()
+                    if quality == '720p' and not torrent_720p:
+                        torrent_720p = torrent.get('url', '')
+                    elif quality == '1080p' and not torrent_1080p:
+                        torrent_1080p = torrent.get('url', '')
+            except Exception as e:
+                # If torrent fetching fails, continue with empty links
+                logger.error(f"Error fetching torrents for {dvd.name}: {e}")
+                pass
+        
+        writer.writerow([
+            dvd.name,
+            dvd.get_status_display(),
+            torrent_720p,
+            torrent_1080p
+        ])
+    
+    return response
+
+
 def bulk_upload_preview(request):
     """Preview and correct TMDB matches before bulk creating DVDs."""
     # Check if we have session data
