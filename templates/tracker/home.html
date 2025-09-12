@@ -167,41 +167,5 @@
         </div>
     </div>
 
-    <!-- Special Collections -->
-    {% if tartan_dvds or box_sets_count %}
-    <div class="col-12 mb-4">
-        <h3 class="mb-3"><i class="bi bi-star"></i> Special Collections</h3>
-        <div class="row g-3">
-            {% if tartan_dvds %}
-            <div class="col-md-6">
-                <div class="card border-warning">
-                    <div class="card-body text-center">
-                        <i class="bi bi-star text-warning display-4 mb-3"></i>
-                        <h4>{{ tartan_dvds }} Tartan DVDs</h4>
-                        <p class="text-muted">Specialized Asian cinema collection</p>
-                        <a href="{% url 'tracker:tartan_dvds' %}" class="btn btn-warning">
-                            <i class="bi bi-eye"></i> View Tartan Collection
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            {% if box_sets_count %}
-            <div class="col-md-6">
-                <div class="card border-info">
-                    <div class="card-body text-center">
-                        <i class="bi bi-boxes text-info display-4 mb-3"></i>
-                        <h4>{{ box_sets_count }} Box Sets</h4>
-                        <p class="text-muted">Multi-disc collections and series</p>
-                        <a href="{% url 'tracker:box_sets' %}" class="btn btn-info">
-                            <i class="bi bi-eye"></i> View Box Sets
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

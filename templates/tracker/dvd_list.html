@@ -18,22 +18,6 @@
         <a href="{% url 'tracker:dvd_add' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New DVD
         </a>
-        <div class="btn-group ms-2" role="group">
-            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                <i class="bi bi-funnel"></i> View Collections
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'tracker:tartan_dvds' %}">
-                    <i class="bi bi-star text-purple"></i> Tartan DVDs
-                </a></li>
-                <li><a class="dropdown-item" href="{% url 'tracker:duplicates' %}">
-                    <i class="bi bi-files text-secondary"></i> Duplicates
-                </a></li>
-                <li><a class="dropdown-item" href="{% url 'tracker:box_sets' %}">
-                    <i class="bi bi-boxes text-info"></i> Box Sets
-                </a></li>
-            </ul>
-        </div>
     </div>
 </div>
 
