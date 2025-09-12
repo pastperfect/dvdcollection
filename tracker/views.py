@@ -1668,10 +1668,11 @@ def bulk_mark_downloaded(request):
                     
                     if exact_matches.count() == 1:
                         dvd = exact_matches.first()
-                        if dvd.media_type == 'download':
+                        if dvd.media_type == 'download' and dvd.is_downloaded:
                             results['already_downloaded'].append(dvd.name)
                         else:
                             dvd.media_type = 'download'
+                            dvd.is_downloaded = True
                             dvd.save()
                             results['found_and_updated'].append(dvd.name)
                     elif exact_matches.count() > 1:
@@ -1686,10 +1687,11 @@ def bulk_mark_downloaded(request):
                         
                         if fuzzy_matches.count() == 1:
                             dvd = fuzzy_matches.first()
-                            if dvd.media_type == 'download':
+                            if dvd.media_type == 'download' and dvd.is_downloaded:
                                 results['already_downloaded'].append(dvd.name)
                             else:
                                 dvd.media_type = 'download'
+                                dvd.is_downloaded = True
                                 dvd.save()
                                 results['found_and_updated'].append(dvd.name)
                         elif fuzzy_matches.count() > 1:
