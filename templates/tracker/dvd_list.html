@@ -22,49 +22,89 @@
 </div>
 
 <!-- Filter Form -->
-<div class="filter-form">
-    <form method="get" class="row g-3">
-        <div class="col-md-4">
-            <label for="{{ filter_form.search.id_for_label }}" class="form-label">Search</label>
-            {{ filter_form.search }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.status.id_for_label }}" class="form-label">Status</label>
-            {{ filter_form.status }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.media_type.id_for_label }}" class="form-label">Media Type</label>
-            {{ filter_form.media_type }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.is_tartan_dvd.id_for_label }}" class="form-label">Tartan</label>
-            {{ filter_form.is_tartan_dvd }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.is_box_set.id_for_label }}" class="form-label">Box Set</label>
-            {{ filter_form.is_box_set }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.is_unopened.id_for_label }}" class="form-label">Condition</label>
-            {{ filter_form.is_unopened }}
-        </div>
-        <div class="col-md-2">
-            <label for="{{ filter_form.is_unwatched.id_for_label }}" class="form-label">Watch Status</label>
-            {{ filter_form.is_unwatched }}
-        </div>
-        <div class="col-md-4">
-            <label for="{{ filter_form.production_company.id_for_label }}" class="form-label">Production Company</label>
-            {{ filter_form.production_company }}
-        </div>
-        <div class="col-12">
-            <button type="submit" class="btn btn-outline-primary me-2">
-                <i class="bi bi-funnel"></i> Filter
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-funnel"></i> Filter Collection
+            </h6>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                <i class="bi bi-chevron-down"></i> <span class="d-none d-sm-inline">Toggle Filters</span>
             </button>
-            <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-x-circle"></i> Clear Filters
-            </a>
         </div>
-    </form>
+    </div>
+    <div class="collapse{% if request.GET.search or request.GET.status or request.GET.media_type or request.GET.is_tartan_dvd or request.GET.is_box_set or request.GET.is_unopened or request.GET.is_unwatched or request.GET.production_company %} show{% endif %}" id="filterCollapse">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- Primary Filters Row -->
+                <div class="col-md-6">
+                    <label for="{{ filter_form.search.id_for_label }}" class="form-label">
+                        <i class="bi bi-search me-1"></i>Search
+                    </label>
+                    {{ filter_form.search }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.status.id_for_label }}" class="form-label">
+                        <i class="bi bi-bookmark me-1"></i>Status
+                    </label>
+                    {{ filter_form.status }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.media_type.id_for_label }}" class="form-label">
+                        <i class="bi bi-disc me-1"></i>Media Type
+                    </label>
+                    {{ filter_form.media_type }}
+                </div>
+                
+                <!-- Secondary Filters Row -->
+                <div class="col-md-3">
+                    <label for="{{ filter_form.is_tartan_dvd.id_for_label }}" class="form-label">
+                        <i class="bi bi-shield-check me-1"></i>Tartan
+                    </label>
+                    {{ filter_form.is_tartan_dvd }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.is_box_set.id_for_label }}" class="form-label">
+                        <i class="bi bi-collection me-1"></i>Box Set
+                    </label>
+                    {{ filter_form.is_box_set }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.is_unopened.id_for_label }}" class="form-label">
+                        <i class="bi bi-shield me-1"></i>Condition
+                    </label>
+                    {{ filter_form.is_unopened }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.is_unwatched.id_for_label }}" class="form-label">
+                        <i class="bi bi-eye me-1"></i>Watch Status
+                    </label>
+                    {{ filter_form.is_unwatched }}
+                </div>
+                
+                <!-- Production Company Row -->
+                <div class="col-md-8">
+                    <label for="{{ filter_form.production_company.id_for_label }}" class="form-label">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWNsYXBwZXJib2FyZC1pY29uIGx1Y2lkZS1jbGFwcGVyYm9hcmQiPjxwYXRoIGQ9Ik0yMC4yIDYgMyAxMWwtLjktMi40Yy0uMy0xLjEuMy0yLjIgMS4zLTIuNWwxMy41LTRjMS4xLS4zIDIuMi4zIDIuNSAxLjNaIi8+PHBhdGggZD0ibTYuMiA1LjMgMy4xIDMuOSIvPjxwYXRoIGQ9Im0xMi40IDMuNCAzLjEgNCIvPjxwYXRoIGQ9Ik0zIDExaDE4djhhMiAyIDAgMCAxLTIgMkg1YTIgMiAwIDAgMS0yLTJaIi8+PC9zdmc+" 
+                        width="17" height="17" class="me-1" alt="Production Company">Production Company
+                    </label>
+                    {{ filter_form.production_company }}
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-funnel"></i> Apply Filters
+                        </button>
+                        <a href="{% url 'tracker:dvd_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Results Summary -->
