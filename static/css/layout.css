@@ -1,0 +1,183 @@
+/* ========================================
+   DVD Collection Tracker - Layout
+   Navigation, Footer, and Layout Components
+   ======================================== */
+
+/* ========================================
+   Navigation
+   ======================================== */
+.navbar {
+    background-color: var(--navbar-bg) !important;
+}
+
+.navbar-brand, 
+.navbar-nav .nav-link {
+    color: white !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #e9ecef !important;
+}
+
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+footer {
+    background: var(--card-bg) !important;
+    border-top: 1px solid var(--border-light);
+}
+
+/* ========================================
+   Grid & Layout Components
+   ======================================== */
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-lighter);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+    text-align: right;
+}
+
+.info-value {
+    color: #666;
+    font-weight: 500;
+    text-align: right;
+    font-size: 0.95rem;
+}
+
+.collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.collection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--body-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+}
+
+.collection-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: var(--font-size-base);
+}
+
+.collection-value {
+    color: var(--secondary-color);
+    font-weight: 500;
+    font-size: var(--font-size-base);
+}
+
+/* ========================================
+   Form Layout
+   ======================================== */
+.form-check {
+    padding-left: 1.5em;
+}
+
+.form-check-input {
+    margin-left: -1.5em;
+}
+
+/* Enhanced form group spacing */
+.card .card-header {
+    background-color: var(--body-bg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.card .card-header h6 {
+    color: #495057;
+}
+
+.card .card-body .row .col-md-6 {
+    border-right: 1px solid var(--border-lighter);
+}
+
+.card .card-body .row .col-md-6:last-child {
+    border-right: none;
+}
+
+/* Box set name container animation */
+#box-set-name-container, #manual-box-set-name-container {
+    transition: var(--transition-default);
+}
+
+/* ========================================
+   Autocomplete Components
+   ======================================== */
+.autocomplete-container {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--body-bg);
+    font-size: var(--font-size-base);
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background-color: #e9ecef;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-no-results {
+    padding: 0.5rem 0.75rem;
+    color: var(--secondary-color);
+    font-style: italic;
+    font-size: var(--font-size-base);
+}

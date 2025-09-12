@@ -1,0 +1,52 @@
+/* ========================================
+   DVD Collection Tracker - Utilities
+   Utility Classes and Helper Styles
+   ======================================== */
+
+/* ========================================
+   Transition Utilities
+   ======================================== */
+.transition-default { transition: var(--transition-default); }
+.transition-fast { transition: var(--transition-fast); }
+
+/* ========================================
+   Shadow Utilities
+   ======================================== */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* ========================================
+   Border Radius Utilities
+   ======================================== */
+.border-radius { border-radius: var(--border-radius); }
+.border-radius-lg { border-radius: var(--border-radius-lg); }
+
+/* ========================================
+   Loading States
+   ======================================== */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* ========================================
+   Custom Scrollbar
+   ======================================== */
+.search-results::-webkit-scrollbar {
+    width: 8px;
+}
+
+.search-results::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}

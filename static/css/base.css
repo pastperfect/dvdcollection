@@ -1,0 +1,100 @@
+/* ========================================
+   DVD Collection Tracker - Base Styles
+   Variables, Resets, and Bootstrap Overrides
+   ======================================== */
+
+/* ========================================
+   CSS Custom Properties (Variables)
+   ======================================== */
+:root {
+    /* Color System */
+    --primary-color: #4d7b9e;
+    --primary-hover: #283f50;
+    --secondary-color: #6c757d;
+    --success-color: #246d76;
+    --warning-color: #485f5a;
+    --warning-hover: #3e4f4a;
+    --info-color: #aedadc;
+    --info-hover: #8ec1c9;
+    --danger-color: #dc3545;
+    --danger-hover: #bb2d3b;
+    --purple-color: #6f42c1;
+    --purple-hover: #5a2d91;
+    
+    /* Layout Colors */
+    --navbar-bg: #213558;
+    --body-bg: #f8f9fa;
+    --card-bg: white;
+    --border-light: #dee2e6;
+    --border-lighter: #f0f0f0;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+    
+    /* Transitions */
+    --transition-default: all 0.3s ease;
+    --transition-fast: all 0.2s ease;
+    
+    /* Spacing */
+    --border-radius: 0.375rem;
+    --border-radius-lg: 0.5rem;
+    --border-radius-pill: 20px;
+    
+    /* Typography */
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.75rem;
+    --font-size-base: 0.875rem;
+    --font-size-lg: 1rem;
+    --line-height-base: 1.4;
+}
+
+/* ========================================
+   Base Element Styles
+   ======================================== */
+body {
+    background-color: var(--body-bg);
+}
+
+/* ========================================
+   Bootstrap Color Overrides
+   ======================================== */
+.bg-primary { background-color: var(--primary-color) !important; }
+.bg-success { background-color: var(--success-color) !important; }
+.bg-warning { background-color: var(--warning-color) !important; }
+.bg-info { background-color: var(--info-color) !important; }
+.bg-heading { background-color: var(--navbar-bg) !important; }
+.bg-purple { background-color: var(--purple-color) !important; }
+
+.text-warning { color: var(--warning-color) !important; }
+.text-info { color: var(--info-color) !important; }
+.text-purple { color: var(--purple-color) !important; }
+
+.border-warning { border-color: var(--warning-color) !important; }
+.border-info { border-color: var(--info-color) !important; }
+
+/* ========================================
+   Form Base Styles
+   ======================================== */
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(77, 123, 158, 0.25);
+}
+
+.form-check-label {
+    font-weight: 500;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* ========================================
+   Alert Base Styles
+   ======================================== */
+.alert {
+    border: none;
+    border-radius: var(--border-radius-lg);
+}

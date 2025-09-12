@@ -1,0 +1,96 @@
+/* ========================================
+   DVD Collection Tracker - Responsive
+   All Media Queries Consolidated
+   ======================================== */
+
+/* ========================================
+   Tablet (768px and below)
+   ======================================== */
+@media (max-width: 768px) {
+    /* DVD Detail Page */
+    .detail-title {
+        font-size: 2rem;
+    }
+    
+    .detail-header .d-flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .certification-container {
+        margin-left: 0;
+        margin-top: 1rem;
+        align-self: flex-end;
+    }
+    
+    .certification-image {
+        width: 60px;
+        max-height: 80px;
+    }
+    
+    .info-grid, .collection-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .torrent-downloads {
+        flex-direction: column;
+    }
+    
+    .torrent-download-btn {
+        justify-content: center;
+    }
+    
+    .external-links {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    /* Filter Form */
+    .filter-form .row > div {
+        margin-bottom: 1rem;
+    }
+    
+    /* Button Groups */
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        border-radius: var(--border-radius) !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* ========================================
+   Mobile (576px and below)
+   ======================================== */
+@media (max-width: 576px) {
+    /* DVD Detail Page */
+    .detail-section-content {
+        padding: 1rem;
+    }
+    
+    .collection-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    /* Torrent Links */
+    .torrent-links .btn {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    /* Poster container maintains aspect ratio automatically */
+}

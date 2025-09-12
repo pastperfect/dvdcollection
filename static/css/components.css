@@ -1,0 +1,379 @@
+/* ========================================
+   DVD Collection Tracker - Components
+   Reusable Components (Buttons, Cards, Badges)
+   ======================================== */
+
+/* ========================================
+   Button System
+   ======================================== */
+/* Base button styles */
+.btn {
+    transition: var(--transition-fast);
+    font-weight: 500;
+}
+
+/* Primary button variants */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: white;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Warning button variants */
+.btn-warning {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: var(--warning-hover);
+    border-color: var(--warning-hover);
+    color: white;
+}
+
+.btn-outline-warning {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.btn-outline-warning:hover {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+    color: white;
+}
+
+/* Info button variants */
+.btn-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: var(--info-hover);
+    border-color: var(--info-hover);
+    color: white;
+}
+
+/* Purple button variants */
+.btn-purple {
+    background-color: var(--purple-color);
+    border-color: var(--purple-color);
+    color: white;
+}
+
+.btn-purple:hover {
+    background-color: var(--purple-hover);
+    border-color: var(--purple-hover);
+    color: white;
+}
+
+.btn-outline-purple {
+    border-color: var(--purple-color);
+    color: var(--purple-color);
+}
+
+.btn-outline-purple:hover {
+    background-color: var(--purple-color);
+    border-color: var(--purple-color);
+    color: white;
+}
+
+/* Custom action button variants */
+.btn-outline-editdvd {
+    border-color: #285179;
+    color: #285179;
+}
+
+.btn-outline-editdvd:hover {
+    background-color: #285179;
+    border-color: #285179;
+    color: white;
+}
+
+.btn-outline-fixtmdb {
+    border-color: #ca7b00;
+    color: #ca7b00;
+}
+
+.btn-outline-fixtmdb:hover {
+    background-color: #ca7b00;
+    border-color: #ca7b00;
+    color: white;
+}
+
+.btn-outline-changeposter {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-changeposter:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.btn-outline-deletedvd {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.btn-outline-deletedvd:hover {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+    color: white;
+}
+
+/* Button group styling */
+.btn-group .btn {
+    flex: 1;
+}
+
+/* ========================================
+   Badge System
+   ======================================== */
+.badge-base {
+    font-size: var(--font-size-sm);
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.badge-status { 
+    font-size: var(--font-size-sm);
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-kept { background-color: var(--success-color); color: white; }
+.badge-wanted { background-color: #f59e0b; color: white; }
+.badge-sold { background-color: #ef4444; color: white; }
+.badge-yes { background-color: var(--success-color); color: white; }
+.badge-no { background-color: var(--danger-color); color: white; }
+.badge-physical { background-color: #285179; color: white; }
+.badge-watched { background-color: var(--success-color); color: white; }
+.badge-unwatched { background-color: #5a6c76; color: white; }
+.badge-opened { background-color: var(--warning-color); color: white; }
+.badge-box1 { background-color: #7e93a4; color: white; }
+
+/* Badge positioning */
+.status-badge, .media-type-badge {
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+.special-badge {
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    z-index: 10;
+    margin-left: 0.25rem;
+}
+
+.bottom-badges {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    z-index: 10;
+    justify-content: flex-start;
+}
+
+.bottom-badges .badge {
+    font-size: var(--font-size-xs);
+    padding: 0.25rem 0.5rem;
+}
+
+/* ========================================
+   Card System
+   ======================================== */
+.dvd-card {
+    box-shadow: var(--shadow-sm);
+    border: none;
+    transition: var(--transition-default);
+    overflow: hidden;
+}
+
+.dvd-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.dvd-card:hover .poster-img {
+    transform: scale(1.05);
+}
+
+.box-set-card {
+    box-shadow: var(--shadow-sm);
+    border: none;
+    transition: var(--transition-default);
+}
+
+.box-set-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.box-set-icon {
+    min-width: 60px;
+}
+
+.box-set-preview img {
+    max-width: 100%;
+    height: auto;
+}
+
+.other-copy-card {
+    background: var(--body-bg);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    height: 100%;
+}
+
+.other-copy-card .card-title {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* ========================================
+   Poster System
+   ======================================== */
+.poster-container {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 2/3;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    background-color: var(--body-bg);
+}
+
+.poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+}
+
+.no-poster {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #495057 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    width: 100%;
+    height: 100%;
+}
+
+/* Position badges on poster */
+.poster-container .status-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+}
+
+.poster-container .media-type-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.poster-container .special-badge {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+}
+
+/* Box set poster styling */
+.box-set-posters img {
+    border: 2px solid #fff;
+    box-shadow: var(--shadow-sm);
+}
+
+.box-set-posters .d-flex {
+    overflow: visible;
+}
+
+.box-set-posters .poster-thumbnail:not(:first-child) {
+    margin-left: -10px;
+}
+
+.poster-placeholder {
+    transition: var(--transition-fast);
+}
+
+.poster-placeholder:hover {
+    background-color: #e9ecef !important;
+    border-color: #adb5bd !important;
+}
+
+.box-set-posters .col-6.offset-3 {
+    max-width: 50%;
+}
+
+/* ========================================
+   Search & Filter Components
+   ======================================== */
+.tmdb-result {
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid transparent;
+    transition: var(--transition-fast);
+}
+
+.tmdb-result:hover {
+    border-color: var(--primary-color);
+    text-decoration: none;
+    color: inherit;
+}
+
+.filter-form {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 2rem;
+}
+
+/* ========================================
+   Text Utilities
+   ======================================== */
+.card-text-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: var(--line-height-base);
+    max-height: calc(var(--line-height-base) * 3);
+}
