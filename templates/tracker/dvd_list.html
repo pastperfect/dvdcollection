@@ -33,11 +33,11 @@
             </button>
         </div>
     </div>
-    <div class="collapse{% if request.GET.search or request.GET.status or request.GET.media_type or request.GET.is_tartan_dvd or request.GET.is_box_set or request.GET.is_unopened or request.GET.is_unwatched or request.GET.production_company %} show{% endif %}" id="filterCollapse">
+    <div class="collapse{% if request.GET.search or request.GET.status or request.GET.media_type or request.GET.is_tartan_dvd or request.GET.is_box_set or request.GET.is_unopened or request.GET.is_unwatched or request.GET.is_downloaded or request.GET.has_torrents or request.GET.production_company %} show{% endif %}" id="filterCollapse">
         <div class="card-body">
             <form method="get" class="row g-3">
                 <!-- Primary Filters Row -->
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <label for="{{ filter_form.search.id_for_label }}" class="form-label">
                         <i class="bi bi-search me-1"></i>Search
                     </label>
@@ -81,6 +81,21 @@
                     </label>
                     {{ filter_form.is_unwatched }}
                 </div>
+                
+                <!-- Third Filters Row -->
+                <div class="col-md-3">
+                    <label for="{{ filter_form.is_downloaded.id_for_label }}" class="form-label">
+                        <i class="bi bi-download me-1"></i>Download Status
+                    </label>
+                    {{ filter_form.is_downloaded }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ filter_form.has_torrents.id_for_label }}" class="form-label">
+                        <i class="bi bi-cloud-arrow-down me-1"></i>Torrent Status
+                    </label>
+                    {{ filter_form.has_torrents }}
+                </div>
+                <div class="col-md-6"></div>
                 
                 <!-- Production Company Row -->
                 <div class="col-md-8">

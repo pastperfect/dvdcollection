@@ -268,6 +268,22 @@ class DVDFilterForm(forms.Form):
             'autocomplete': 'off'
         })
     )
+    
+    is_downloaded = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All'), ('true', 'Downloaded'), ('false', 'Not Downloaded')],
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    
+    has_torrents = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All'), ('true', 'Torrents Available'), ('false', 'No Torrents')],
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
 
 
 class BulkUploadForm(forms.Form):

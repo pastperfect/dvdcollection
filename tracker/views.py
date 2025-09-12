@@ -97,6 +97,8 @@ def dvd_list(request):
         is_unopened = filter_form.cleaned_data.get('is_unopened')
         is_unwatched = filter_form.cleaned_data.get('is_unwatched')
         production_company = filter_form.cleaned_data.get('production_company')
+        is_downloaded = filter_form.cleaned_data.get('is_downloaded')
+        has_torrents = filter_form.cleaned_data.get('has_torrents')
         
         if search:
             dvds = dvds.filter(
@@ -126,6 +128,17 @@ def dvd_list(request):
             
         if production_company:
             dvds = dvds.filter(production_companies__icontains=production_company)
+            
+        if is_downloaded:
+            dvds = dvds.filter(is_downloaded=(is_downloaded == 'true'))
+            
+        if has_torrents:
+            if has_torrents == 'true':
+                # Filter for DVDs that have IMDB IDs (indicating torrent availability)
+                dvds = dvds.exclude(imdb_id='').exclude(imdb_id__isnull=True)
+            else:
+                # Filter for DVDs that don't have IMDB IDs
+                dvds = dvds.filter(Q(imdb_id='') | Q(imdb_id__isnull=True))
     
     # Pagination
     paginator = Paginator(dvds, 12)  # 12 DVDs per page
