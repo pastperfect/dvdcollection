@@ -62,8 +62,7 @@
                             {% if can_proceed %}
                             <form method="post" action="{% url 'tracker:bulk_upload_process' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" name="proceed" class="btn btn-success btn-lg"
-                                        onclick="return confirm('Create {{ confirmed_matches }} DVD entries in your collection?')">
+                                <button type="submit" name="proceed" class="btn btn-success btn-lg">
                                     <i class="bi bi-check-circle"></i> Create {{ confirmed_matches }} DVDs
                                 </button>
                             </form>
@@ -209,13 +208,66 @@
             <div class="text-center mt-4">
                 <form method="post" action="{% url 'tracker:bulk_upload_process' %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" name="proceed" class="btn btn-success btn-lg"
-                            onclick="return confirm('Create {{ confirmed_matches }} DVD entries in your collection?')">
+                    <button type="submit" name="proceed" class="btn btn-success btn-lg">
                         <i class="bi bi-check-circle"></i> Create {{ confirmed_matches }} DVDs
                     </button>
                 </form>
             </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create DVDs Confirmation Modal -->
+<div class="modal fade" id="createDvdsModal" tabindex="-1" aria-labelledby="createDvdsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createDvdsModalLabel">
+                    <i class="bi bi-check-circle"></i> Confirm DVD Creation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-success">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Ready to create DVDs:</strong>
+                </div>
+                <p>This will create <strong id="dvdCountText">{{ confirmed_matches }}</strong> new DVD entries in your collection.</p>
+                
+                <!-- Summary of what will be created -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center py-2">
+                                <h6 class="mb-1" id="dvdCountDisplay">{{ confirmed_matches }}</h6>
+                                <small class="text-muted">New DVDs</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center py-2">
+                                <h6 class="mb-1">{{ bulk_data.form_defaults.default_status|title }}</h6>
+                                <small class="text-muted">Default Status</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Note:</strong> This action cannot be undone. All DVDs will be created with your selected default settings.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="confirmCreateDvds">
+                    <i class="bi bi-check-circle"></i> Create <span id="confirmButtonCount">{{ confirmed_matches }}</span> DVDs
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -344,8 +396,9 @@ function selectMovie(tmdbId) {
     form.submit();
 }
 
-// Style for search result cards
+// Handle Create DVDs confirmation with Bootstrap modal
 document.addEventListener('DOMContentLoaded', function() {
+    // Style for search result cards
     const style = document.createElement('style');
     style.textContent = `
         .search-result-card:hover {
@@ -354,6 +407,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+    
+    // Get all the "Create DVDs" buttons
+    const createButtons = document.querySelectorAll('button[name="proceed"]');
+    
+    createButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            // Extract DVD count from button text
+            const dvdCount = this.textContent.match(/\d+/)[0];
+            document.getElementById('dvdCountText').textContent = dvdCount;
+            document.getElementById('dvdCountDisplay').textContent = dvdCount;
+            document.getElementById('confirmButtonCount').textContent = dvdCount;
+            
+            // Show the Bootstrap modal
+            const modal = new bootstrap.Modal(document.getElementById('createDvdsModal'));
+            modal.show();
+            
+            // Store reference to the clicked form for later submission
+            window.currentCreateForm = this.closest('form');
+        });
+    });
+    
+    // Handle the actual form submission when user confirms in modal
+    document.getElementById('confirmCreateDvds').addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('createDvdsModal'));
+        
+        // Show loading state
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating DVDs...';
+        this.disabled = true;
+        
+        // Hide the modal
+        modal.hide();
+        
+        // Submit the stored form
+        if (window.currentCreateForm) {
+            // Add loading state to original buttons
+            const originalButtons = document.querySelectorAll('button[name="proceed"]');
+            originalButtons.forEach(btn => {
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+                btn.disabled = true;
+            });
+            
+            window.currentCreateForm.submit();
+        }
+    });
 });
 </script>
 {% endblock %}
