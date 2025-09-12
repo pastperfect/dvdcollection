@@ -160,6 +160,39 @@
     </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmUploadModal" tabindex="-1" aria-labelledby="confirmUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmUploadModalLabel">
+                    <i class="bi bi-upload"></i> Confirm Bulk Upload
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Processing Details:</strong>
+                </div>
+                <p>This will process <strong id="movieCountText">0</strong> movies.</p>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-clock"></i> This may take a few minutes depending on the number of movies. 
+                    Please don't close your browser during processing.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmUploadBtn">
+                    <i class="bi bi-upload"></i> Start Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Sample movie lists
 const sampleLists = {
@@ -254,27 +287,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Form submission handling
+// Form submission handling with Bootstrap modal
 document.getElementById('bulkUploadForm').addEventListener('submit', function(e) {
-    const btn = document.getElementById('uploadBtn');
+    e.preventDefault(); // Always prevent default submission first
+    
     const movieList = document.getElementById('{{ form.movie_list.id_for_label }}').value.trim();
     
     if (!movieList) {
-        e.preventDefault();
-        alert('Please enter at least one movie title.');
+        // Show Bootstrap alert instead of basic alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
+        alertDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>No movies entered!</strong> Please enter at least one movie title.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Insert alert before the form
+        const form = document.getElementById('bulkUploadForm');
+        form.parentNode.insertBefore(alertDiv, form);
+        
+        // Auto-remove alert after 5 seconds
+        setTimeout(() => {
+            if (alertDiv && alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+        
         return;
     }
     
     const movieCount = movieList.split('\n').filter(line => line.trim()).length;
     
-    if (!confirm(`This will process ${movieCount} movies. This may take a few minutes. Continue?`)) {
-        e.preventDefault();
-        return;
-    }
+    // Update modal content with movie count
+    document.getElementById('movieCountText').textContent = movieCount;
     
-    // Show loading state
+    // Show the Bootstrap modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmUploadModal'));
+    modal.show();
+});
+
+// Handle the actual form submission when user confirms in modal
+document.getElementById('confirmUploadBtn').addEventListener('click', function() {
+    const btn = document.getElementById('uploadBtn');
+    const form = document.getElementById('bulkUploadForm');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmUploadModal'));
+    
+    // Hide the modal
+    modal.hide();
+    
+    // Show loading state on the main button
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
     btn.disabled = true;
+    
+    // Submit the form
+    form.submit();
 });
 </script>
 {% endblock %}
