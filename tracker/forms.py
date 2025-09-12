@@ -302,7 +302,7 @@ class BulkUploadForm(forms.Form):
     
     skip_existing = forms.BooleanField(
         required=False,
-        initial=True,
+        initial=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'form-check-input'
         }),
@@ -349,7 +349,7 @@ class BulkUploadForm(forms.Form):
     
     default_is_unwatched = forms.BooleanField(
         required=False,
-        initial=True,
+        initial=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'form-check-input'
         }),
