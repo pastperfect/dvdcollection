@@ -151,10 +151,16 @@ class DVD(models.Model):
     
     def has_torrents(self):
         """Check if this DVD has available torrent links."""
-        # For performance, we only check if IMDB ID exists
-        # The actual torrent availability is checked in detail view
-        return bool(self.imdb_id)
-    
+        if not self.imdb_id:
+            return False
+        
+        # Import here to avoid circular imports
+        from .services import YTSService
+        
+        yts_service = YTSService()
+        torrents = yts_service.get_quality_torrents(self.imdb_id, ['720p', '1080p'])
+        return len(torrents) > 0
+        
     def get_special_features_badges(self):
         """Return a list of special feature badges."""
         badges = []
