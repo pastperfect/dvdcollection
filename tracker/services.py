@@ -377,7 +377,7 @@ class TMDBService:
         
         return {
             'tmdb_id': movie_data.get('id'),
-            'imdb_id': movie_data.get('imdb_id', ''),
+            'imdb_id': movie_data.get('imdb_id') or '',
             'name': movie_data.get('title', ''),
             'overview': movie_data.get('overview', ''),
             'poster_path': movie_data.get('poster_path'),
@@ -405,8 +405,8 @@ class TMDBService:
         formatted_data = {}
         
         # Only include fields that have values and are safe to update
-        if movie_data.get('imdb_id'):
-            formatted_data['imdb_id'] = movie_data.get('imdb_id')
+        # Always set imdb_id to empty string if not present to avoid NULL constraint errors
+        formatted_data['imdb_id'] = movie_data.get('imdb_id') or ''
         
         if movie_data.get('title'):
             formatted_data['name'] = movie_data.get('title')
