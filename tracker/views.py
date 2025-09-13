@@ -134,11 +134,23 @@ def dvd_list(request):
             
         if has_torrents:
             if has_torrents == 'true':
-                # Filter for DVDs that have IMDB IDs (indicating torrent availability)
-                dvds = dvds.exclude(imdb_id='').exclude(imdb_id__isnull=True)
+                # Filter for DVDs that actually have torrents available
+                # First filter by IMDB ID to reduce API calls
+                dvds_with_imdb = dvds.exclude(imdb_id='').exclude(imdb_id__isnull=True)
+                # Then check actual torrent availability
+                dvd_ids_with_torrents = []
+                for dvd in dvds_with_imdb:
+                    if dvd.has_torrents():
+                        dvd_ids_with_torrents.append(dvd.id)
+                dvds = dvds.filter(id__in=dvd_ids_with_torrents)
             else:
-                # Filter for DVDs that don't have IMDB IDs
-                dvds = dvds.filter(Q(imdb_id='') | Q(imdb_id__isnull=True))
+                # Filter for DVDs that don't have torrents available
+                # This includes both manually entered DVDs and TMDB DVDs without torrents
+                dvd_ids_without_torrents = []
+                for dvd in dvds:
+                    if not dvd.has_torrents():
+                        dvd_ids_without_torrents.append(dvd.id)
+                dvds = dvds.filter(id__in=dvd_ids_without_torrents)
     
     # Pagination
     paginator = Paginator(dvds, 12)  # 12 DVDs per page
