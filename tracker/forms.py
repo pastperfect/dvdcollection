@@ -2,6 +2,7 @@ from django import forms
 from .models import DVD
 import requests
 from django.conf import settings
+from django.core.files.uploadedfile import UploadedFile
 
 
 
@@ -153,14 +154,17 @@ class DVDForm(forms.ModelForm):
             if poster.size > 5 * 1024 * 1024:
                 raise forms.ValidationError('Image file too large. Maximum size is 5MB.')
             
-            # Check file type
-            if not poster.content_type.startswith('image/'):
-                raise forms.ValidationError('File must be an image.')
-            
-            # Check specific image formats
-            allowed_formats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-            if poster.content_type not in allowed_formats:
-                raise forms.ValidationError('Unsupported image format. Please use JPEG, PNG, GIF, or WebP.')
+            # Only validate content type for newly uploaded files
+            # ImageFieldFile objects (existing files) don't have content_type attribute
+            if isinstance(poster, UploadedFile):
+                # Check file type
+                if not poster.content_type.startswith('image/'):
+                    raise forms.ValidationError('File must be an image.')
+                
+                # Check specific image formats
+                allowed_formats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+                if poster.content_type not in allowed_formats:
+                    raise forms.ValidationError('Unsupported image format. Please use JPEG, PNG, GIF, or WebP.')
         
         return poster
     

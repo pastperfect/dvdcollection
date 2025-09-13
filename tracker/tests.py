@@ -1,6 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
 from .models import DVD
+from .forms import DVDForm
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models.fields.files import ImageFieldFile
 
 
 class DVDModelTest(TestCase):
@@ -46,6 +49,104 @@ class DVDViewTest(TestCase):
         response = self.client.get(reverse('tracker:dvd_detail', kwargs={'pk': self.dvd.pk}))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Test Movie")
+
+
+class DVDFormTest(TestCase):
+    def test_clean_poster_with_existing_file(self):
+        """Test that editing a DVD with an existing poster doesn't raise AttributeError"""
+        # Create a DVD with a poster
+        dvd = DVD.objects.create(
+            name="Test Movie with Poster",
+            status="kept",
+            media_type="physical"
+        )
+        
+        # Create a simple valid PNG image (1x1 pixel) and assign it
+        import base64
+        png_data = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        )
+        test_image = SimpleUploadedFile("test.jpg", png_data, content_type="image/jpeg")
+        dvd.poster = test_image
+        dvd.save()
+        
+        # Now test editing this DVD - the poster field will be an ImageFieldFile
+        form_data = {
+            'name': 'Updated Movie Name',
+            'status': 'kept',
+            'media_type': 'physical',
+            'overview': 'Test overview',
+            'copy_number': 1  # Add required field
+        }
+        
+        # Create form with the existing DVD instance (poster will be ImageFieldFile)
+        form = DVDForm(data=form_data, instance=dvd)
+        
+        # This should not raise AttributeError: 'ImageFieldFile' object has no attribute 'content_type'
+        try:
+            is_valid = form.is_valid()
+            # The form might be invalid for other reasons, but it shouldn't crash
+            self.assertTrue(True, "Form validation completed without AttributeError")
+        except AttributeError as e:
+            if "content_type" in str(e):
+                self.fail(f"Form validation failed with AttributeError: {e}")
+            else:
+                raise  # Re-raise if it's a different AttributeError
+
+    def test_clean_poster_with_new_upload(self):
+        """Test that uploading a new image still validates content type"""
+        # Create a simple valid PNG image (1x1 pixel)
+        import base64
+        from io import BytesIO
+        
+        # This is a tiny valid PNG image (1x1 pixel)
+        png_data = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        )
+        test_image = SimpleUploadedFile("test.png", png_data, content_type="image/png")
+        
+        form_data = {
+            'name': 'New Movie',
+            'status': 'kept',
+            'media_type': 'physical',
+            'overview': 'Test overview',
+            'copy_number': 1  # Add required field
+        }
+        
+        file_data = {
+            'poster': test_image
+        }
+        
+        form = DVDForm(data=form_data, files=file_data)
+        
+        # This should validate successfully
+        self.assertTrue(form.is_valid(), f"Form should be valid, errors: {form.errors}")
+
+    def test_clean_poster_with_invalid_content_type(self):
+        """Test that uploading an invalid file type raises validation error"""
+        # Create a non-image file
+        text_content = b"this is not an image"
+        test_file = SimpleUploadedFile("test.txt", text_content, content_type="text/plain")
+        
+        form_data = {
+            'name': 'New Movie',
+            'status': 'kept',
+            'media_type': 'physical',
+            'overview': 'Test overview',
+            'copy_number': 1  # Add required field
+        }
+        
+        file_data = {
+            'poster': test_file
+        }
+        
+        form = DVDForm(data=form_data, files=file_data)
+        
+        # This should be invalid due to wrong content type
+        self.assertFalse(form.is_valid())
+        self.assertIn('poster', form.errors)
+        # Django's ImageField validation message, not our custom one
+        self.assertIn('Upload a valid image', str(form.errors['poster']))
 
 
 class BulkUploadPreviewTest(TestCase):
