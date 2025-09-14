@@ -108,6 +108,148 @@
             </div>
         </div>
 
+        <!-- Torrent Management -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cloud-download"></i> Torrent Management</h5>
+            </div>
+            <div class="card-body">
+                <!-- Torrent Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="card-title text-info">
+                                    <i class="bi bi-bar-chart"></i> Torrent Statistics
+                                </h6>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="d-flex flex-column">
+                                            <span class="h4 text-success mb-0">{{ dvds_with_torrents }}</span>
+                                            <small class="text-muted">With Torrents</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex flex-column">
+                                            <span class="h4 text-warning mb-0">{{ stale_torrent_data }}</span>
+                                            <small class="text-muted">Need Refresh</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" 
+                                         style="width: {{ torrent_coverage }}%"
+                                         title="{{ torrent_coverage|floatformat:1 }}% coverage">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    Coverage: {{ torrent_coverage|floatformat:1 }}% 
+                                    ({{ dvds_with_torrents }} of {{ total_dvds }} total DVDs)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-secondary">
+                            <div class="card-body">
+                                <h6 class="card-title text-secondary">
+                                    <i class="bi bi-info-circle"></i> System Status
+                                </h6>
+                                <ul class="list-unstyled mb-0 small">
+                                    <li class="text-primary">
+                                        <i class="bi bi-collection"></i> Total DVDs: {{ total_dvds }}
+                                    </li>
+                                    <li class="text-info">
+                                        <i class="bi bi-film"></i> With IMDB IDs: {{ dvds_with_imdb }}
+                                    </li>
+                                    <li class="text-success">
+                                        <i class="bi bi-check-circle"></i> With torrents: {{ dvds_with_torrents }}
+                                    </li>
+                                    <li class="text-warning">
+                                        <i class="bi bi-clock"></i> Stale data: {{ stale_torrent_data }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Torrent Actions -->
+                <div class="row">
+                    <!-- Update Flags Only -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-arrow-clockwise text-info"></i> Update Torrent Flags
+                                </h6>
+                                <p class="card-text small text-muted">
+                                    Quickly update torrent availability flags based on existing cached data. 
+                                    This operation is fast and doesn't make any API calls.
+                                </p>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" name="refresh_flags" class="btn btn-info btn-sm">
+                                        <i class="bi bi-arrow-clockwise"></i> Update Flags
+                                    </button>
+                                </form>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-lightning"></i> Instant operation
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Refresh Small Batch -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-cloud-download text-primary"></i> Refresh Sample
+                                </h6>
+                                <p class="card-text small text-muted">
+                                    Refresh torrent data for a small batch (10 DVDs) with stale data. 
+                                    Good for testing and immediate feedback.
+                                </p>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" name="refresh_small_batch" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-cloud-download"></i> Refresh 10 DVDs
+                                    </button>
+                                </form>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-clock"></i> ~15 seconds
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Line Instructions -->
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-terminal"></i> Bulk Operations
+                    </h6>
+                    <p class="mb-2">For refreshing large numbers of DVDs, use the command line interface:</p>
+                    <div class="bg-dark text-light p-2 rounded">
+                        <code class="text-light">
+                            # Update flags only (instant)<br>
+                            python manage.py refresh_torrent_data --update-flags-only<br><br>
+                            # Refresh 50 DVDs with stale data<br>
+                            python manage.py refresh_torrent_data --batch-size=50<br><br>
+                            # Force refresh all DVDs (use with caution)<br>
+                            python manage.py refresh_torrent_data --force --batch-size=100
+                        </code>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Large batch operations may take several minutes and should be run during off-peak hours.
+                    </small>
+                </div>
+            </div>
+        </div>
+
         <!-- Export Functions -->
         <div class="card mb-4">
             <div class="card-header">

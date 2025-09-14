@@ -1,6 +1,8 @@
 from django.db import models
 from django.urls import reverse
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 
 
 class AppSettings(models.Model):
@@ -78,6 +80,14 @@ class DVD(models.Model):
     tagline = models.CharField(max_length=255, blank=True)
     director = models.CharField(max_length=255, blank=True, help_text="Director of the movie")
     
+    # YTS Torrent data - stored to avoid repeated API calls
+    yts_data = models.JSONField(blank=True, null=True, help_text="Cached YTS torrent data")
+    yts_last_updated = models.DateTimeField(blank=True, null=True, help_text="When YTS data was last refreshed")
+    has_cached_torrents = models.BooleanField(
+        default=False, 
+        help_text="Whether this DVD has torrents available (cached result for fast filtering)"
+    )
+    
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -150,16 +160,60 @@ class DVD(models.Model):
         return classes.get(self.media_type, 'secondary')
     
     def has_torrents(self):
-        """Check if this DVD has available torrent links."""
+        """Check if this DVD has available torrent links (optimized for filtering)."""
         if not self.imdb_id:
             return False
         
-        # Import here to avoid circular imports
+        # For filtering operations, only check cached data - never make API calls
+        # This prevents performance issues and crashes during bulk filtering
+        return bool(self.yts_data and len(self.yts_data) > 0)
+    
+    def get_cached_torrents(self):
+        """Get cached YTS torrent data."""
+        if self.yts_data and isinstance(self.yts_data, list):
+            return self.yts_data
+        return []
+    
+    def is_yts_data_fresh(self, max_age_hours=24):
+        """Check if YTS data is fresh (within max_age_hours)."""
+        if not self.yts_last_updated:
+            return False
+        
+        age = timezone.now() - self.yts_last_updated
+        return age < timedelta(hours=max_age_hours)
+    
+    def refresh_yts_data(self):
+        """Refresh YTS torrent data from the API and update cached availability flag."""
+        if not self.imdb_id:
+            self.has_cached_torrents = False
+            self.save(update_fields=['has_cached_torrents'])
+            return False
+        
         from .services import YTSService
         
         yts_service = YTSService()
         torrents = yts_service.get_quality_torrents(self.imdb_id, ['720p', '1080p'])
-        return len(torrents) > 0
+        
+        # Store the data and update the cached availability flag
+        self.yts_data = torrents
+        self.yts_last_updated = timezone.now()
+        self.has_cached_torrents = bool(torrents and len(torrents) > 0)
+        self.save(update_fields=['yts_data', 'yts_last_updated', 'has_cached_torrents'])
+        
+        return True
+    
+    def update_torrent_availability(self):
+        """Update the cached torrent availability flag without making API calls."""
+        if not self.imdb_id:
+            self.has_cached_torrents = False
+        else:
+            # Only update based on existing cached data
+            # Don't make API calls here - this is for background updates
+            if self.is_yts_data_fresh():
+                self.has_cached_torrents = bool(self.yts_data and len(self.yts_data) > 0)
+            # If data is stale, keep existing value until background job updates it
+        
+        self.save(update_fields=['has_cached_torrents'])
         
     def get_special_features_badges(self):
         """Return a list of special feature badges."""

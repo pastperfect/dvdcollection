@@ -4,13 +4,15 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count, Min, Max, Avg, Sum
+from django.db import models
+from django.utils import timezone
+from datetime import date, timedelta
 from .models import DVD, AppSettings
 from .forms import DVDForm, DVDSearchForm, DVDFilterForm, BulkUploadForm, BulkMarkDownloadedForm
 from .services import TMDBService, YTSService
 import json
 import csv
 import logging
-from datetime import date
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -134,23 +136,11 @@ def dvd_list(request):
             
         if has_torrents:
             if has_torrents == 'true':
-                # Filter for DVDs that actually have torrents available
-                # First filter by IMDB ID to reduce API calls
-                dvds_with_imdb = dvds.exclude(imdb_id='').exclude(imdb_id__isnull=True)
-                # Then check actual torrent availability
-                dvd_ids_with_torrents = []
-                for dvd in dvds_with_imdb:
-                    if dvd.has_torrents():
-                        dvd_ids_with_torrents.append(dvd.id)
-                dvds = dvds.filter(id__in=dvd_ids_with_torrents)
-            else:
-                # Filter for DVDs that don't have torrents available
-                # This includes both manually entered DVDs and TMDB DVDs without torrents
-                dvd_ids_without_torrents = []
-                for dvd in dvds:
-                    if not dvd.has_torrents():
-                        dvd_ids_without_torrents.append(dvd.id)
-                dvds = dvds.filter(id__in=dvd_ids_without_torrents)
+                # Fast database filter - no API calls needed
+                dvds = dvds.filter(has_cached_torrents=True)
+            elif has_torrents == 'false':
+                # Filter for DVDs without cached torrents
+                dvds = dvds.filter(has_cached_torrents=False)
     
     # Pagination
     paginator = Paginator(dvds, 12)  # 12 DVDs per page
@@ -169,11 +159,14 @@ def dvd_detail(request, pk):
     """Display detailed view of a DVD."""
     dvd = get_object_or_404(DVD, pk=pk)
     
-    # Get torrent information if IMDB ID is available
+    # Get torrent information - use cached data or refresh if needed
     torrents = []
     if dvd.imdb_id:
-        yts_service = YTSService()
-        torrents = yts_service.get_quality_torrents(dvd.imdb_id, ['720p', '1080p'])
+        # Check if we need to refresh YTS data
+        if not dvd.is_yts_data_fresh():
+            dvd.refresh_yts_data()
+        
+        torrents = dvd.get_cached_torrents()
     
     context = {
         'dvd': dvd,
@@ -1123,18 +1116,72 @@ def admin_settings(request):
     """Admin page for managing application settings."""
     settings = AppSettings.get_settings()
     
+    # Get torrent statistics
+    total_dvds = DVD.objects.count()
+    dvds_with_imdb = DVD.objects.exclude(imdb_id='').exclude(imdb_id__isnull=True).count()
+    dvds_with_torrents = DVD.objects.filter(has_cached_torrents=True).count()
+    dvds_without_torrents = DVD.objects.filter(has_cached_torrents=False).count()
+    stale_torrent_data = DVD.objects.filter(
+        models.Q(yts_last_updated__isnull=True) |
+        models.Q(yts_last_updated__lt=timezone.now() - timedelta(weeks=1))
+    ).exclude(imdb_id='').exclude(imdb_id__isnull=True).count()
+    
     if request.method == 'POST':
-        tmdb_api_key = request.POST.get('tmdb_api_key', '').strip()
+        # Handle torrent operations
+        if 'refresh_flags' in request.POST:
+            updated_count = 0
+            for dvd in DVD.objects.all():
+                old_flag = dvd.has_cached_torrents
+                has_torrents = bool(dvd.yts_data and len(dvd.yts_data) > 0)
+                if old_flag != has_torrents:
+                    dvd.has_cached_torrents = has_torrents
+                    dvd.save(update_fields=['has_cached_torrents'])
+                    updated_count += 1
+            
+            messages.success(request, f'Updated torrent availability flags for {updated_count} DVDs.')
+            return redirect('tracker:admin_settings')
         
-        # Update the settings
-        settings.tmdb_api_key = tmdb_api_key
-        settings.save()
+        elif 'refresh_small_batch' in request.POST:
+            # Refresh a small batch (10 DVDs) for immediate feedback
+            dvds_to_refresh = DVD.objects.filter(
+                models.Q(imdb_id__isnull=False) & ~models.Q(imdb_id=''),
+                models.Q(yts_last_updated__isnull=True) |
+                models.Q(yts_last_updated__lt=timezone.now() - timedelta(weeks=1))
+            )[:10]
+            
+            success_count = 0
+            for dvd in dvds_to_refresh:
+                try:
+                    if dvd.refresh_yts_data():
+                        success_count += 1
+                except Exception:
+                    pass  # Continue with other DVDs
+            
+            if success_count > 0:
+                messages.success(request, f'Refreshed torrent data for {success_count} DVDs.')
+            else:
+                messages.info(request, 'No DVDs were refreshed. They may already be up to date.')
+            return redirect('tracker:admin_settings')
         
-        messages.success(request, 'Settings updated successfully.')
-        return redirect('tracker:admin_settings')
+        # Handle TMDB settings
+        elif 'tmdb_api_key' in request.POST:
+            tmdb_api_key = request.POST.get('tmdb_api_key', '').strip()
+            
+            # Update the settings
+            settings.tmdb_api_key = tmdb_api_key
+            settings.save()
+            
+            messages.success(request, 'Settings updated successfully.')
+            return redirect('tracker:admin_settings')
     
     context = {
         'settings': settings,
+        'total_dvds': total_dvds,
+        'dvds_with_imdb': dvds_with_imdb,
+        'dvds_with_torrents': dvds_with_torrents,
+        'dvds_without_torrents': dvds_without_torrents,
+        'stale_torrent_data': stale_torrent_data,
+        'torrent_coverage': (dvds_with_torrents / total_dvds * 100) if total_dvds > 0 else 0,
         'page_title': 'Admin Settings',
         'page_icon': 'gear',
     }
@@ -1743,3 +1790,42 @@ def bulk_mark_downloaded(request):
         form = BulkMarkDownloadedForm()
     
     return render(request, 'tracker/bulk_mark_downloaded.html', {'form': form})
+
+
+@require_http_methods(["POST"])
+def refresh_yts_data(request, pk):
+    """AJAX endpoint to refresh YTS torrent data for a specific DVD."""
+    try:
+        dvd = get_object_or_404(DVD, pk=pk)
+        
+        if not dvd.imdb_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'IMDB ID is required to fetch torrent data'
+            })
+        
+        # Refresh the YTS data
+        success = dvd.refresh_yts_data()
+        
+        if success:
+            torrents = dvd.get_cached_torrents()
+            torrent_count = len(torrents) if torrents else 0
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'YTS data refreshed successfully. Found {torrent_count} torrents.',
+                'torrent_count': torrent_count,
+                'last_updated': dvd.yts_last_updated.strftime('%B %d, %Y at %I:%M %p') if dvd.yts_last_updated else None
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to refresh YTS data'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error refreshing YTS data for DVD {pk}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while refreshing torrent data'
+        })

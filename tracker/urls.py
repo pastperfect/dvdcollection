@@ -20,6 +20,7 @@ urlpatterns = [
     path('dvd/<int:pk>/fix-tmdb/', views.fix_tmdb_match, name='fix_tmdb_match'),
     path('dvd/<int:pk>/change-poster/', views.dvd_change_poster, name='dvd_change_poster'),
     path('dvd/<int:pk>/fetch-imdb/', views.fetch_imdb_id, name='fetch_imdb_id'),
+    path('dvd/<int:pk>/refresh-yts/', views.refresh_yts_data, name='refresh_yts_data'),
     path('box-sets/<str:box_set_name>/', views.box_set_detail, name='box_set_detail'),
     path('api/search/', views.search_tmdb_ajax, name='search_tmdb_ajax'),
     path('api/box-set-autocomplete/', views.box_set_autocomplete, name='box_set_autocomplete'),

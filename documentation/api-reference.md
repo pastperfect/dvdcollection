@@ -481,4 +481,120 @@ Size options: w92, w154, w185, w342, w500, w780, original
 
 ---
 
+### YTS (YIFY Torrents) API
+
+The application integrates with YTS for torrent information.
+
+#### YTSService Class
+
+Located in `tracker/services.py`
+
+##### Initialization
+```python
+from tracker.services import YTSService
+
+yts_service = YTSService()
+```
+
+##### Methods
+
+###### `get_movie_torrents(imdb_id)`
+Fetch all available torrents for a movie.
+
+**Parameters:**
+- `imdb_id` (str): IMDB ID of the movie (e.g., "tt1234567")
+
+**Returns:**
+- `list`: Array of torrent objects
+
+**Example:**
+```python
+torrents = yts_service.get_movie_torrents("tt0111161")
+# Returns: [{'quality': '1080p', 'size': '2.1 GB', 'url': '...', ...}]
+```
+
+###### `get_quality_torrents(imdb_id, qualities)`
+Get filtered torrents by quality.
+
+**Parameters:**
+- `imdb_id` (str): IMDB ID of the movie
+- `qualities` (list): Desired quality levels (default: ['720p', '1080p'])
+
+**Returns:**
+- `list`: Filtered torrent objects
+
+**Example:**
+```python
+torrents = yts_service.get_quality_torrents("tt0111161", ['1080p'])
+```
+
+#### Torrent Data Structure
+
+```json
+{
+  "url": "https://yts.mx/torrent/download/...",
+  "hash": "torrent_hash_string",
+  "quality": "1080p",
+  "type": "bluray",
+  "seeds": 150,
+  "peers": 10,
+  "size": "2.1 GB",
+  "date_uploaded": "2023-01-15 12:00:00",
+  "video_codec": "x264"
+}
+```
+
+## 🔗 Internal API Endpoints
+
+### DVD Management
+
+#### Refresh YTS Data
+Manually refresh torrent data for a specific DVD.
+
+**Endpoint:** `POST /dvd/{pk}/refresh-yts/`
+
+**Parameters:**
+- `pk` (int): DVD primary key
+
+**Request Headers:**
+- `X-CSRFToken`: Django CSRF token
+- `Content-Type`: application/json
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "YTS data refreshed successfully. Found 3 torrents.",
+  "torrent_count": 3,
+  "last_updated": "September 14, 2025 at 06:30 PM"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "IMDB ID is required to fetch torrent data"
+}
+```
+
+#### Fetch IMDB ID
+Automatically fetch IMDB ID from TMDB data.
+
+**Endpoint:** `POST /dvd/{pk}/fetch-imdb/`
+
+**Parameters:**
+- `pk` (int): DVD primary key
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "IMDB ID fetched successfully",
+  "imdb_id": "tt1234567"
+}
+```
+
+---
+
 *Complete API reference for DVD Collection Tracker. For implementation details, see the source code and [Development Guide](development.md).*

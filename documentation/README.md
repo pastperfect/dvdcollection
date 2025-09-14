@@ -19,6 +19,7 @@ This documentation is organized into the following sections:
 ### Technical Documentation
 - [**API Reference**](api-reference.md) - TMDB and YTS API integration details
 - [**Database Schema**](database-schema.md) - Data model documentation
+- [**YTS Service & Torrent Functionality**](yts-torrent-documentation.md) - Complete guide to YTS integration and torrent features
 - [**Development Guide**](development.md) - Contributing and development setup
 
 ### Administrative

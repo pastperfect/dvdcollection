@@ -268,34 +268,45 @@
         <!-- Torrent Downloads Section -->
         {% if dvd.imdb_id %}
         <div class="detail-section mb-4">
-            <div class="detail-section-header">
+            <div class="detail-section-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h5>
+                <div class="d-flex align-items-center gap-2">
+                    {% if dvd.yts_last_updated %}
+                        <small class="text-muted">Last updated: {{ dvd.yts_last_updated|date:"M d, Y H:i" }}</small>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary" id="refresh-yts-btn" onclick="refreshYtsData({{ dvd.pk }})">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
             </div>
             <div class="detail-section-content">
-                {% if torrents %}
-                    <div class="torrent-downloads">
-                        {% for torrent in torrents %}
-                            <a href="{{ torrent.url }}" 
-                               class="torrent-download-btn"
-                               target="_blank" 
-                               rel="noopener noreferrer"
-                               title="Size: {{ torrent.size }}, Seeds: {{ torrent.seeds }}, Peers: {{ torrent.peers }}">
-                                <i class="bi bi-download"></i> 
-                                {{ torrent.type|capfirst }} {{ torrent.quality }} {{ torrent.video_codec }}
-                                <small class="torrent-size">({{ torrent.size }})</small>
-                            </a>
-                        {% endfor %}
-                    </div>
-                    <p class="torrent-info">
-                        <i class="bi bi-info-circle"></i>
-                        Torrent links provided by <a href="https://yts.mx" target="_blank" class="text-decoration-none">YTS</a>
-                    </p>
-                {% else %}
-                    <div class="alert alert-info mb-0" role="alert">
-                        <i class="bi bi-info-circle"></i>
-                        No torrents available for this movie on YTS.
-                    </div>
-                {% endif %}
+                <div id="torrent-content">
+                    {% if torrents %}
+                        <div class="torrent-downloads">
+                            {% for torrent in torrents %}
+                                <a href="{{ torrent.url }}" 
+                                   class="torrent-download-btn"
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   title="Size: {{ torrent.size }}, Seeds: {{ torrent.seeds }}, Peers: {{ torrent.peers }}">
+                                    <i class="bi bi-download"></i> 
+                                    {{ torrent.type|capfirst }} {{ torrent.quality }} {{ torrent.video_codec }}
+                                    <small class="torrent-size">({{ torrent.size }})</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        <p class="torrent-info">
+                            <i class="bi bi-info-circle"></i>
+                            Torrent links provided by <a href="https://yts.mx" target="_blank" class="text-decoration-none">YTS</a>
+                        </p>
+                    {% else %}
+                        <div class="alert alert-info mb-0" role="alert">
+                            <i class="bi bi-info-circle"></i>
+                            No torrents available for this movie on YTS.
+                        </div>
+                    {% endif %}
+                </div>
+                <div id="yts-refresh-result" class="mt-2" style="display: none;"></div>
             </div>
         </div>
         {% elif dvd.tmdb_id %}
@@ -381,6 +392,55 @@ function fetchImdbId(dvdId) {
         // Re-enable button
         button.disabled = false;
         button.innerHTML = '<i class="bi bi-cloud-download"></i> Auto-fetch IMDB ID';
+    });
+}
+
+function refreshYtsData(dvdId) {
+    const button = document.getElementById('refresh-yts-btn');
+    const resultDiv = document.getElementById('yts-refresh-result');
+    
+    // Disable button and show loading
+    button.disabled = true;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Refreshing...';
+    
+    fetch(`/dvd/${dvdId}/refresh-yts/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> ${data.message}
+                    <a href="." class="btn btn-sm btn-primary ms-2">Reload Page</a>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle"></i> ${data.error}
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-circle"></i> Error: ${error.message}
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+    })
+    .finally(() => {
+        // Re-enable button
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
     });
 }
 
