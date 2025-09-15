@@ -120,7 +120,8 @@ class Command(BaseCommand):
                         new_values = {}
                         
                         for field, value in formatted_data.items():
-                            if hasattr(dvd, field) and field != 'poster_path':
+                            # Skip tmdb_user_score field and poster_path
+                            if hasattr(dvd, field) and field not in ['poster_path', 'tmdb_user_score', 'rating']:
                                 old_value = getattr(dvd, field)
                                 
                                 # Only update if there's a new value and it's different
@@ -153,7 +154,8 @@ class Command(BaseCommand):
                         # Check what would be updated
                         fields_to_update = []
                         for field, value in formatted_data.items():
-                            if hasattr(dvd, field) and field != 'poster_path':
+                            # Skip tmdb_user_score field and poster_path
+                            if hasattr(dvd, field) and field not in ['poster_path', 'tmdb_user_score', 'rating']:
                                 old_value = getattr(dvd, field)
                                 if value and str(old_value) != str(value):
                                     fields_to_update.append(field)
