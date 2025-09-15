@@ -108,6 +108,129 @@
             </div>
         </div>
 
+        <!-- TMDB Data Management -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database"></i> TMDB Data Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">
+                                    <i class="bi bi-info-circle"></i> Missing Details Detection
+                                </h6>
+                                <p class="card-text small text-muted">
+                                    Some DVDs may be missing detailed information like taglines, budget/revenue data, 
+                                    production companies, or director information. This typically happens with older 
+                                    bulk uploads that used basic search data.
+                                </p>
+                                <small class="text-muted">
+                                    <i class="bi bi-lightbulb"></i> 
+                                    The refresh function will identify and update DVDs missing these key details.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="card-title text-info">
+                                    <i class="bi bi-list-check"></i> Detailed Fields Include
+                                </h6>
+                                <ul class="list-unstyled mb-0 small">
+                                    <li><i class="bi bi-tag"></i> Movie taglines</li>
+                                    <li><i class="bi bi-currency-dollar"></i> Budget & revenue data</li>
+                                    <li><i class="bi bi-building"></i> Production companies</li>
+                                    <li><i class="bi bi-person-video"></i> Director information</li>
+                                    <li><i class="bi bi-shield-check"></i> UK certifications</li>
+                                    <li><i class="bi bi-star"></i> Enhanced ratings</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TMDB Refresh Actions -->
+                <div class="row">
+                    <!-- Refresh Missing Details -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-search text-warning"></i> Refresh Missing Details
+                                </h6>
+                                <p class="card-text small text-muted">
+                                    <strong>Recommended:</strong> Efficiently update only DVDs missing detailed information 
+                                    like taglines, budget/revenue, production companies, and director data.
+                                </p>
+                                <button type="button" 
+                                        class="btn btn-warning btn-sm" 
+                                        onclick="startDetailedRefresh()">
+                                    <i class="bi bi-search"></i> Refresh Missing Details
+                                </button>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-clock"></i> Variable duration (only missing data)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Refresh All TMDB -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-arrow-clockwise text-primary"></i> Refresh All TMDB Data
+                                </h6>
+                                <p class="card-text small text-muted">
+                                    Refresh ALL movie data from TMDB for every DVD in your collection. 
+                                    This updates everything including basic info and detailed data.
+                                </p>
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm" 
+                                        onclick="startFullRefresh()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh All Data
+                                </button>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-exclamation-triangle"></i> Longer operation
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section (Hidden by default) -->
+                <div id="tmdb-progress-section" class="alert alert-info mt-3" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">
+                            <i class="bi bi-hourglass-split"></i> <span id="progress-title">TMDB Refresh Progress</span>
+                        </h6>
+                        <button type="button" class="btn-close btn-sm" onclick="hideProgress()"></button>
+                    </div>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div id="progress-bar" 
+                             class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 0%">
+                            0%
+                        </div>
+                    </div>
+                    <small id="progress-status" class="text-muted">Starting...</small>
+                    <div id="progress-results" class="mt-2" style="display: none;">
+                        <small class="text-success">
+                            <i class="bi bi-check-circle"></i> Updated: <span id="updated-count">0</span>
+                        </small>
+                        <small class="text-danger ms-3">
+                            <i class="bi bi-x-circle"></i> Failed: <span id="failed-count">0</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Torrent Management -->
         <div class="card mb-4">
             <div class="card-header">
@@ -353,6 +476,123 @@ function togglePasswordVisibility(fieldId) {
     } else {
         field.type = 'password';
         icon.className = 'bi bi-eye';
+    }
+}
+
+// TMDB Refresh Functions
+let refreshIntervalId = null;
+
+function startDetailedRefresh() {
+    if (!confirm('This will refresh detailed TMDB data for DVDs missing information like taglines, budget/revenue, and production companies. Continue?')) {
+        return;
+    }
+    
+    document.getElementById('progress-title').textContent = 'Missing Details Refresh Progress';
+    startRefresh('{% url "tracker:refresh_missing_details" %}', 'details');
+}
+
+function startFullRefresh() {
+    if (!confirm('This will refresh ALL TMDB data for every DVD in your collection. This may take a while. Continue?')) {
+        return;
+    }
+    
+    document.getElementById('progress-title').textContent = 'Full TMDB Refresh Progress';
+    startRefresh('{% url "tracker:refresh_all_tmdb" %}', 'full');
+}
+
+function startRefresh(url, type) {
+    // Show progress section
+    document.getElementById('tmdb-progress-section').style.display = 'block';
+    
+    // Reset progress
+    updateProgress(0, 'Starting refresh...', false, {updated: 0, failed: 0});
+    
+    // Start the refresh
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Start polling for progress
+            pollProgress(data.task_id, type);
+        } else {
+            updateProgress(0, 'Error starting refresh: ' + (data.error || 'Unknown error'), true, {updated: 0, failed: 0});
+        }
+    })
+    .catch(error => {
+        updateProgress(0, 'Network error: ' + error.message, true, {updated: 0, failed: 0});
+    });
+}
+
+function pollProgress(taskId, type) {
+    const progressUrl = '{% url "tracker:refresh_progress" %}?task_id=' + taskId + '&type=' + type;
+    
+    refreshIntervalId = setInterval(() => {
+        fetch(progressUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success !== false) {
+                updateProgress(
+                    Math.round(data.progress || 0), 
+                    data.status || 'Processing...', 
+                    data.completed || false,
+                    data.results || {updated: 0, failed: 0}
+                );
+                
+                if (data.completed) {
+                    clearInterval(refreshIntervalId);
+                    refreshIntervalId = null;
+                }
+            } else {
+                updateProgress(0, 'Error checking progress: ' + (data.error || 'Unknown error'), true, {updated: 0, failed: 0});
+                clearInterval(refreshIntervalId);
+                refreshIntervalId = null;
+            }
+        })
+        .catch(error => {
+            updateProgress(0, 'Network error: ' + error.message, true, {updated: 0, failed: 0});
+            clearInterval(refreshIntervalId);
+            refreshIntervalId = null;
+        });
+    }, 2000); // Poll every 2 seconds
+}
+
+function updateProgress(percentage, status, completed, results) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressStatus = document.getElementById('progress-status');
+    const progressResults = document.getElementById('progress-results');
+    const updatedCount = document.getElementById('updated-count');
+    const failedCount = document.getElementById('failed-count');
+    
+    progressBar.style.width = percentage + '%';
+    progressBar.textContent = percentage + '%';
+    progressStatus.textContent = status;
+    
+    if (completed) {
+        progressBar.classList.remove('progress-bar-animated');
+        if (results.updated > 0) {
+            progressBar.classList.remove('bg-primary');
+            progressBar.classList.add('bg-success');
+        }
+    }
+    
+    if (results) {
+        updatedCount.textContent = results.updated || 0;
+        failedCount.textContent = results.failed || 0;
+        progressResults.style.display = 'block';
+    }
+}
+
+function hideProgress() {
+    document.getElementById('tmdb-progress-section').style.display = 'none';
+    if (refreshIntervalId) {
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = null;
     }
 }
 </script>

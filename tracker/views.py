@@ -984,6 +984,140 @@ def delete_dvd_api(request):
 
 
 @require_http_methods(["POST"])
+def refresh_missing_details(request):
+    """Start a background task to refresh detailed TMDB data for DVDs missing detailed information."""
+    import uuid
+    from django.core.cache import cache
+    
+    # Generate a unique task ID
+    task_id = str(uuid.uuid4())
+    
+    # Initialize progress tracking
+    cache.set(f'tmdb_detail_refresh_{task_id}', {
+        'progress': 0,
+        'status': 'Starting detailed data refresh...',
+        'completed': False,
+        'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+    }, 3600)  # Cache for 1 hour
+    
+    # Start the refresh process in the background
+    from django.utils import timezone
+    import threading
+    
+    def refresh_task():
+        try:
+            tmdb_service = TMDBService()
+            
+            # Find DVDs with TMDB IDs but missing detailed information
+            # Target DVDs that are missing key detailed fields that should be populated
+            dvds_missing_details = DVD.objects.filter(
+                tmdb_id__gt=0  # Has TMDB ID
+            ).filter(
+                # Missing at least one of these detailed fields
+                models.Q(tagline='') | models.Q(tagline__isnull=True) |
+                models.Q(revenue__isnull=True) |
+                models.Q(budget__isnull=True) |
+                models.Q(production_companies='') | models.Q(production_companies__isnull=True) |
+                models.Q(director='') | models.Q(director__isnull=True) |
+                models.Q(uk_certification='') | models.Q(uk_certification__isnull=True)
+            )
+            
+            total_dvds = dvds_missing_details.count()
+            
+            if total_dvds == 0:
+                cache.set(f'tmdb_detail_refresh_{task_id}', {
+                    'progress': 100,
+                    'status': 'No DVDs found missing detailed information',
+                    'completed': True,
+                    'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+                }, 3600)
+                return
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for i, dvd in enumerate(dvds_missing_details, 1):
+                try:
+                    # Update progress
+                    progress = (i / total_dvds) * 100
+                    cache.set(f'tmdb_detail_refresh_{task_id}', {
+                        'progress': progress,
+                        'status': f'Updating {dvd.name}... ({i}/{total_dvds})',
+                        'completed': False,
+                        'results': {'updated': updated_count, 'failed': failed_count, 'skipped': 0}
+                    }, 3600)
+                    
+                    # Fetch fresh data from TMDB
+                    logger.info(f"Fetching detailed TMDB data for DVD {dvd.id} with TMDB ID: {dvd.tmdb_id}")
+                    movie_data = tmdb_service.get_movie_details(dvd.tmdb_id)
+                    if movie_data:
+                        logger.info(f"Got TMDB data for DVD {dvd.id}, formatting...")
+                        formatted_data = tmdb_service.format_movie_data_for_refresh(movie_data)
+                        logger.info(f"Formatted data for DVD {dvd.id}: {list(formatted_data.keys())}")
+                        
+                        # Update DVD with fresh detailed data
+                        poster_path = formatted_data.pop('poster_path', None)
+                        fields_updated = []
+                        for field, value in formatted_data.items():
+                            if hasattr(dvd, field):
+                                old_value = getattr(dvd, field)
+                                # Only update if the new value is different and not empty
+                                if value and str(old_value) != str(value):
+                                    logger.info(f"Updating DVD {dvd.id}.{field}: '{old_value}' -> '{value}'")
+                                    setattr(dvd, field, value)
+                                    fields_updated.append(field)
+                        
+                        if fields_updated:
+                            logger.info(f"Saving DVD {dvd.id} with updated fields: {fields_updated}")
+                            dvd.updated_at = timezone.now()
+                            dvd.save()
+                            updated_count += 1
+                        else:
+                            logger.info(f"No new data to update for DVD {dvd.id}")
+
+                        # Download poster if missing
+                        if poster_path and not dvd.poster:
+                            full_poster_url = tmdb_service.get_full_poster_url(poster_path)
+                            tmdb_service.download_poster(dvd, full_poster_url)
+
+                        logger.info(f"Successfully processed DVD {dvd.id}")
+                    else:
+                        logger.warning(f"No data returned from TMDB for DVD {dvd.id} (TMDB ID: {dvd.tmdb_id})")
+                        failed_count += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error refreshing DVD {dvd.id} ('{dvd.name}', TMDB ID: {getattr(dvd, 'tmdb_id', 'None')}): {str(e)}")
+                    failed_count += 1
+            
+            # Mark as completed
+            cache.set(f'tmdb_detail_refresh_{task_id}', {
+                'progress': 100,
+                'status': f'Detailed refresh completed! Updated {updated_count}, Failed {failed_count}',
+                'completed': True,
+                'results': {'updated': updated_count, 'failed': failed_count, 'skipped': 0}
+            }, 3600)
+            
+        except Exception as e:
+            logger.error(f"Error in TMDB detailed refresh task: {str(e)}")
+            cache.set(f'tmdb_detail_refresh_{task_id}', {
+                'progress': 0,
+                'status': f'Error: {str(e)}',
+                'completed': True,
+                'results': {'updated': 0, 'failed': 0, 'skipped': 0}
+            }, 3600)
+    
+    # Start the background thread
+    thread = threading.Thread(target=refresh_task)
+    thread.daemon = True
+    thread.start()
+    
+    return JsonResponse({
+        'success': True,
+        'task_id': task_id
+    })
+
+
+@require_http_methods(["POST"])
 def refresh_all_tmdb(request):
     """Start a background task to refresh TMDB data for all DVDs."""
     import uuid
@@ -1100,6 +1234,8 @@ def refresh_all_tmdb(request):
 def refresh_progress(request):
     """Check the progress of a TMDB refresh task."""
     task_id = request.GET.get('task_id')
+    task_type = request.GET.get('type', 'full')  # 'full' or 'details'
+    
     if not task_id:
         return JsonResponse({
             'success': False,
@@ -1107,7 +1243,10 @@ def refresh_progress(request):
         })
     
     from django.core.cache import cache
-    progress_data = cache.get(f'tmdb_refresh_{task_id}')
+    
+    # Determine cache key based on task type
+    cache_key = f'tmdb_refresh_{task_id}' if task_type == 'full' else f'tmdb_detail_refresh_{task_id}'
+    progress_data = cache.get(cache_key)
     
     if progress_data is None:
         return JsonResponse({
@@ -1645,27 +1784,27 @@ def bulk_upload_process(request):
             else:
                 storage_box = ''
             
-            # Create DVD entry
-            dvd = DVD.objects.create(
-                name=tmdb_formatted_data['name'],
-                overview=tmdb_formatted_data['overview'],
-                release_year=tmdb_formatted_data['release_year'],
-                runtime=tmdb_formatted_data['runtime'],
-                genres=tmdb_formatted_data['genres'],
-                tmdb_id=tmdb_formatted_data['tmdb_id'],
-                imdb_id=tmdb_formatted_data['imdb_id'],
-                rating=tmdb_formatted_data['rating'],
-                copy_number=copy_number,  # Set the proper copy number
-                status=form_defaults['default_status'],
-                media_type=form_defaults['default_media_type'],
-                is_tartan_dvd=form_defaults['default_is_tartan_dvd'],
-                is_box_set=form_defaults['default_is_box_set'],
-                box_set_name=form_defaults['default_box_set_name'] if form_defaults['default_is_box_set'] else '',
-                is_unopened=form_defaults['default_is_unopened'],
-                is_unwatched=form_defaults['default_is_unwatched'],
-                storage_box=form_defaults['default_storage_box'] if form_defaults['default_status'] == 'kept' else '',
-                location=assigned_location
-            )
+            # Create DVD entry with all available TMDB data
+            dvd_data = {
+                'copy_number': copy_number,  # Set the proper copy number
+                'status': form_defaults['default_status'],
+                'media_type': form_defaults['default_media_type'],
+                'is_tartan_dvd': form_defaults['default_is_tartan_dvd'],
+                'is_box_set': form_defaults['default_is_box_set'],
+                'box_set_name': form_defaults['default_box_set_name'] if form_defaults['default_is_box_set'] else '',
+                'is_unopened': form_defaults['default_is_unopened'],
+                'is_unwatched': form_defaults['default_is_unwatched'],
+                'storage_box': form_defaults['default_storage_box'] if form_defaults['default_status'] == 'kept' else '',
+                'location': assigned_location,
+                'is_downloaded': False
+            }
+            
+            # Add all TMDB formatted data (includes tagline, revenue, production_companies, etc.)
+            for key, value in tmdb_formatted_data.items():
+                if key not in ['poster_path']:  # Skip poster_path as it's handled separately
+                    dvd_data[key] = value
+            
+            dvd = DVD.objects.create(**dvd_data)
             
             # Download poster if available
             if poster_path:

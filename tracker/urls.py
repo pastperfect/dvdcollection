@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/bulk-update-dvd/', views.bulk_update_dvd, name='bulk_update_dvd'),
     path('api/delete-dvd/', views.delete_dvd_api, name='delete_dvd_api'),
     path('api/refresh-all-tmdb/', views.refresh_all_tmdb, name='refresh_all_tmdb'),
+    path('api/refresh-missing-details/', views.refresh_missing_details, name='refresh_missing_details'),
     path('api/refresh-progress/', views.refresh_progress, name='refresh_progress'),
     path('system-admin/', views.admin_settings, name='admin_settings'),
     path('system-admin/export-non-kept/', views.export_non_kept_dvds, name='export_non_kept_dvds'),
