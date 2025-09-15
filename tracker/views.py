@@ -1201,7 +1201,7 @@ def export_non_kept_dvds(request):
     
     # Generate filename with current date
     current_date = date.today().strftime('%Y-%m-%d')
-    filename = f"MovieExport_{current_date}.csv"
+    filename = f"Non-Kept_MovieExport_{current_date}.csv"
     
     # Create the HttpResponse object with the appropriate CSV header
     response = HttpResponse(
