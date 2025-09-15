@@ -299,14 +299,20 @@ class TMDBService:
             return
 
         try:
+            # Delete the old poster file if it exists
+            if dvd.poster:
+                dvd.poster.delete(save=False)
+
             response = requests.get(poster_url, stream=True, timeout=10)
             response.raise_for_status()
 
-            # Get the filename from the URL
-            filename = os.path.basename(poster_url)
+            # Create a unique filename using DVD ID to avoid conflicts
+            original_filename = os.path.basename(poster_url)
+            name, ext = os.path.splitext(original_filename)
+            unique_filename = f"{name}_dvd_{dvd.id}{ext}"
             
             # Save the image to the poster field
-            dvd.poster.save(filename, ContentFile(response.content), save=True)
+            dvd.poster.save(unique_filename, ContentFile(response.content), save=True)
 
         except requests.RequestException as e:
             logger.error(f"Error downloading poster for DVD {dvd.id}: {e}")
