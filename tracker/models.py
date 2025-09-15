@@ -98,6 +98,12 @@ class DVD(models.Model):
     def __str__(self):
         return self.name
     
+    def save(self, *args, **kwargs):
+        """Override save to ensure uk_certification is always lowercase."""
+        if self.uk_certification:
+            self.uk_certification = self.uk_certification.lower()
+        super().save(*args, **kwargs)
+    
     def clean(self):
         """Custom validation for the DVD model."""
         super().clean()
