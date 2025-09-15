@@ -1210,7 +1210,7 @@ def export_non_kept_dvds(request):
     )
     
     writer = csv.writer(response)
-    writer.writerow(['Movie Name', 'Release Year', 'Status', 'Media Type', '720p Download Link', '1080p Download Link'])
+    writer.writerow(['Movie Name', 'Release Year', 'Status', 'Media Type', 'Download Available', '720p Download Link', '1080p Download Link'])
     
     
     for dvd in non_kept_dvds:
@@ -1234,6 +1234,7 @@ def export_non_kept_dvds(request):
             dvd.release_year or '',
             dvd.get_status_display(),
             dvd.get_media_type_display(),
+            dvd.has_cached_torrents,
             link_720p,
             link_1080p
         ])
@@ -1248,7 +1249,7 @@ def export_complete_collection(request):
     
     # Generate filename with current date
     current_date = date.today().strftime('%Y-%m-%d')
-    filename = f"CollectionExport_{current_date}.csv"
+    filename = f"CompleteCollectionExport_{current_date}.csv"
     
     # Create the HttpResponse object with the appropriate CSV header
     response = HttpResponse(
@@ -1272,6 +1273,7 @@ def export_complete_collection(request):
         'Box Set Name',
         'Date Added',
         'Date Updated',
+        'Has torrents',
         'Torrent File Links',
         'Director',
         'IMDB ID',
@@ -1280,29 +1282,24 @@ def export_complete_collection(request):
         'Duplicate Notes'
     ])
     
-    # Initialize YTS service for getting torrent links
-    yts_service = YTSService()
     
     for dvd in all_dvds:
         # Get torrent information if IMDB ID is available
         torrent_links = ''
         
-        if dvd.imdb_id:
-            try:
-                torrents = yts_service.get_quality_torrents(dvd.imdb_id, ['720p', '1080p'])
-                
-                # Build torrent links string
-                torrent_parts = []
-                for torrent in torrents:
-                    quality = torrent.get('quality', 'Unknown')
-                    url = torrent.get('url', '')
-                    if url:
-                        torrent_parts.append(f"{quality}: {url}")
-                
-                torrent_links = ' | '.join(torrent_parts)
-            except Exception as e:
-                logger.error(f"Error fetching torrents for {dvd.name}: {e}")
-                torrent_links = 'Error fetching torrents'
+        if dvd.imdb_id and dvd.yts_data:
+
+            cached_torrents = dvd.get_cached_torrents()
+            
+            # Build torrent links string
+            torrent_parts = []
+            for torrent in cached_torrents:
+                quality = torrent.get('quality', 'Unknown')
+                url = torrent.get('url', '')
+                if url:
+                    torrent_parts.append(f"{quality}: {url}")
+            
+            torrent_links = ' | '.join(torrent_parts)
         
         writer.writerow([
             dvd.name,
@@ -1317,6 +1314,7 @@ def export_complete_collection(request):
             dvd.box_set_name or '',
             dvd.created_at.strftime('%Y-%m-%d %H:%M:%S') if dvd.created_at else '',
             dvd.updated_at.strftime('%Y-%m-%d %H:%M:%S') if dvd.updated_at else '',
+            dvd.has_cached_torrents,
             torrent_links,
             dvd.director or '',
             dvd.imdb_id or '',
@@ -1340,7 +1338,7 @@ def export_disposed_for_download(request):
     
     # Generate filename with current date
     current_date = date.today().strftime('%Y-%m-%d')
-    filename = f"DisposedDVDs_{current_date}.csv"
+    filename = f"DisposedDVDsExport_{current_date}.csv"
     
     # Create the HttpResponse object with the appropriate CSV header
     response = HttpResponse(
@@ -1353,40 +1351,32 @@ def export_disposed_for_download(request):
     # Write header row
     writer.writerow([
         'Movie Name',
-        'Status', 
+        'Status',
+        'Torrent Available', 
         '720p Torrent Link',
         '1080p Torrent Link'
     ])
     
-    # Initialize YTS service for torrent links
-    yts_service = YTSService()
-    
-    # Write data rows
     for dvd in disposed_dvds:
         # Get torrent links
         torrent_720p = ''
         torrent_1080p = ''
         
-        if dvd.imdb_id:
-            try:
-                # Get torrents for this movie
-                torrents = yts_service.get_movie_torrents(dvd.imdb_id)
-                
-                # Extract specific quality links
-                for torrent in torrents:
-                    quality = torrent.get('quality', '').lower()
-                    if quality == '720p' and not torrent_720p:
-                        torrent_720p = torrent.get('url', '')
-                    elif quality == '1080p' and not torrent_1080p:
-                        torrent_1080p = torrent.get('url', '')
-            except Exception as e:
-                # If torrent fetching fails, continue with empty links
-                logger.error(f"Error fetching torrents for {dvd.name}: {e}")
-                pass
+        if dvd.imdb_id and dvd.yts_data:
+            # Use cached torrent data instead of API call
+            cached_torrents = dvd.get_cached_torrents()
+            
+            # Find specific quality links
+            for torrent in cached_torrents:
+                if torrent.get('quality') == '720p':
+                    torrent_720p = torrent.get('url', '')
+                elif torrent.get('quality') == '1080p':
+                    torrent_1080p = torrent.get('url', '')
         
         writer.writerow([
             dvd.name,
             dvd.get_status_display(),
+            dvd.has_cached_torrents,
             torrent_720p,
             torrent_1080p
         ])
