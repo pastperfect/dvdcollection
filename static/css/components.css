@@ -170,6 +170,7 @@
 }
 
 .badge-kept { background-color: var(--success-color); color: white; }
+.badge-disposed { background-color: #ec3434; color: white; }
 .badge-wanted { background-color: #f59e0b; color: white; }
 .badge-sold { background-color: #ef4444; color: white; }
 .badge-yes { background-color: var(--success-color); color: white; }
