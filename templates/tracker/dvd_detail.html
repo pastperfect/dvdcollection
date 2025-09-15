@@ -272,9 +272,9 @@
                 <h5 class="mb-0"><i class="bi bi-download"></i> Torrent Downloads</h5>
                 <div class="d-flex align-items-center gap-2">
                     {% if dvd.yts_last_updated %}
-                        <small class="text-muted">Last updated: {{ dvd.yts_last_updated|date:"M d, Y H:i" }}</small>
+                        <small class="fst-italic ms-3">Last updated: {{ dvd.yts_last_updated|date:"M d, Y H:i" }}</small>
                     {% endif %}
-                    <button class="btn btn-sm btn-outline-secondary" id="refresh-yts-btn" onclick="refreshYtsData({{ dvd.pk }})">
+                    <button class="btn btn-sm btn-purple" id="refresh-yts-btn" onclick="refreshYtsData({{ dvd.pk }})">
                         <i class="bi bi-arrow-clockwise"></i> Refresh
                     </button>
                 </div>
