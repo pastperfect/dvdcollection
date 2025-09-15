@@ -212,10 +212,12 @@
                     <p class="mb-2">For refreshing large numbers of DVDs, use the command line interface:</p>
                     <div class="bg-dark text-light p-2 rounded">
                         <code class="text-light">
-                            # Check Django management commands for TMDB operations<br>
-                            python manage.py help<br><br>
-                            # Use the admin interface for smaller batches<br>
-                            # Command line tools provide better control for bulk operations
+                            # Dry run of what will be changed<br>
+                            python manage.py refresh_missing_details --dry-run<br><br>
+                            # Refresh 50 DVDs with stale data<br>
+                            python manage.py refresh_missing_details --limit=50<br><br>
+                            # Force refresh all DVDs (use with caution)<br>
+                            python manage.py refresh_missing_details --force
                         </code>
                     </div>
                     <small class="text-muted">
