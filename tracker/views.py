@@ -1212,19 +1212,18 @@ def export_non_kept_dvds(request):
     writer = csv.writer(response)
     writer.writerow(['Movie Name', 'Release Year', 'Status', 'Media Type', '720p Download Link', '1080p Download Link'])
     
-    # Initialize YTS service for getting torrent links
-    yts_service = YTSService()
     
     for dvd in non_kept_dvds:
         # Get torrent information if IMDB ID is available
         link_720p = ''
         link_1080p = ''
         
-        if dvd.imdb_id:
-            torrents = yts_service.get_quality_torrents(dvd.imdb_id, ['720p', '1080p'])
+        if dvd.imdb_id and dvd.yts_data:
+            # Use cached torrent data instead of API call
+            cached_torrents = dvd.get_cached_torrents()
             
             # Find specific quality links
-            for torrent in torrents:
+            for torrent in cached_torrents:
                 if torrent.get('quality') == '720p':
                     link_720p = torrent.get('url', '')
                 elif torrent.get('quality') == '1080p':
