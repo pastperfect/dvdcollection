@@ -1350,6 +1350,108 @@ def admin_settings(request):
             else:
                 messages.info(request, 'All UK certifications are already normalized.')
             return redirect('tracker:admin_settings')
+            
+        elif 'refresh_missing_details' in request.POST:
+            # Refresh TMDB data for DVDs missing detailed information
+            try:
+                tmdb_service = TMDBService()
+                
+                # Find DVDs with TMDB IDs but missing detailed information
+                dvds_missing_details = DVD.objects.filter(
+                    tmdb_id__gt=0  # Has TMDB ID
+                ).filter(
+                    # Missing at least one of these detailed fields
+                    models.Q(tagline='') | models.Q(tagline__isnull=True) |
+                    models.Q(revenue__isnull=True) |
+                    models.Q(budget__isnull=True) |
+                    models.Q(production_companies='') | models.Q(production_companies__isnull=True) |
+                    models.Q(director='') | models.Q(director__isnull=True) |
+                    models.Q(uk_certification='') | models.Q(uk_certification__isnull=True)
+                )[:50]  # Limit to 50 DVDs to avoid timeout
+                
+                updated_count = 0
+                failed_count = 0
+                
+                for dvd in dvds_missing_details:
+                    try:
+                        # Fetch fresh data from TMDB
+                        movie_data = tmdb_service.get_movie_details(dvd.tmdb_id)
+                        if movie_data:
+                            formatted_data = tmdb_service.format_movie_data_for_refresh(movie_data)
+                            
+                            # Update DVD with fresh detailed data
+                            fields_updated = []
+                            for field, value in formatted_data.items():
+                                if hasattr(dvd, field) and field != 'poster_path':
+                                    old_value = getattr(dvd, field)
+                                    if value and str(old_value) != str(value):
+                                        setattr(dvd, field, value)
+                                        fields_updated.append(field)
+                            
+                            if fields_updated:
+                                dvd.save()
+                                updated_count += 1
+                        else:
+                            failed_count += 1
+                    except Exception as e:
+                        logger.error(f"Error refreshing DVD {dvd.id}: {str(e)}")
+                        failed_count += 1
+                
+                if updated_count > 0:
+                    messages.success(request, f'Updated {updated_count} DVDs with missing details. {failed_count} failed.')
+                else:
+                    messages.info(request, f'No DVDs needed updating. {failed_count} failed.')
+                    
+            except Exception as e:
+                messages.error(request, f'Error during TMDB refresh: {str(e)}')
+            return redirect('tracker:admin_settings')
+            
+        elif 'refresh_sample_tmdb' in request.POST:
+            # Refresh a small sample for testing
+            try:
+                tmdb_service = TMDBService()
+                
+                # Get 10 DVDs with TMDB IDs that might need updates
+                dvds_to_update = DVD.objects.filter(
+                    tmdb_id__gt=0
+                ).filter(
+                    models.Q(tagline='') | models.Q(tagline__isnull=True) |
+                    models.Q(revenue__isnull=True) |
+                    models.Q(budget__isnull=True) |
+                    models.Q(production_companies='') | models.Q(production_companies__isnull=True)
+                )[:10]
+                
+                updated_count = 0
+                failed_count = 0
+                
+                for dvd in dvds_to_update:
+                    try:
+                        movie_data = tmdb_service.get_movie_details(dvd.tmdb_id)
+                        if movie_data:
+                            formatted_data = tmdb_service.format_movie_data_for_refresh(movie_data)
+                            
+                            fields_updated = []
+                            for field, value in formatted_data.items():
+                                if hasattr(dvd, field) and field != 'poster_path':
+                                    old_value = getattr(dvd, field)
+                                    if value and str(old_value) != str(value):
+                                        setattr(dvd, field, value)
+                                        fields_updated.append(field)
+                            
+                            if fields_updated:
+                                dvd.save()
+                                updated_count += 1
+                        else:
+                            failed_count += 1
+                    except Exception as e:
+                        logger.error(f"Error refreshing DVD {dvd.id}: {str(e)}")
+                        failed_count += 1
+                
+                messages.success(request, f'Sample refresh completed: {updated_count} updated, {failed_count} failed.')
+                
+            except Exception as e:
+                messages.error(request, f'Error during sample refresh: {str(e)}')
+            return redirect('tracker:admin_settings')
         
         # Handle TMDB settings
         elif 'tmdb_api_key' in request.POST:

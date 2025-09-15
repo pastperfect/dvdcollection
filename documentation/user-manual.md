@@ -357,15 +357,51 @@ Access via "Admin Settings":
 
 Update all movie metadata:
 
-1. **Bulk Refresh**:
-   - Click "Refresh All TMDB Data"
-   - Background process updates all movies
-   - Progress tracking with live updates
+1. **Web Interface**:
+   - **Refresh Missing Details**: Updates DVDs missing detailed information
+   - **Sample Refresh**: Test operation on 10 DVDs
+   - Progress feedback with success/failure counts
 
-2. **Individual Refresh**:
+2. **Command Line Interface**:
+   ```bash
+   # Refresh DVDs missing detailed information
+   python manage.py refresh_missing_details
+   
+   # Dry run to see what would be updated
+   python manage.py refresh_missing_details --dry-run
+   
+   # Limit to specific number of DVDs
+   python manage.py refresh_missing_details --limit 50
+   
+   # Force refresh all DVDs with TMDB IDs
+   python manage.py refresh_missing_details --force
+   
+   # Verbose output showing field changes
+   python manage.py refresh_missing_details --verbose
+   ```
+
+3. **Individual Refresh**:
    - Use "Fix TMDB Match" on specific DVDs
    - Search for correct movie data
    - Update metadata selectively
+
+#### UK Certification Normalization
+
+Standardize certification data:
+
+1. **Web Interface**:
+   - Click "Normalize UK Certifications"
+   - Converts all certifications to lowercase
+   - Shows before/after statistics
+
+2. **Command Line Interface**:
+   ```bash
+   # Normalize all UK certifications
+   python manage.py normalize_uk_certifications
+   
+   # See what would be changed
+   python manage.py normalize_uk_certifications --dry-run --verbose
+   ```
 
 #### Database Cleanup
 
