@@ -1,4 +1,5 @@
-manual_scripts/
+manual_scripts/ 
+*backup*.zip
 
 
 # Python
