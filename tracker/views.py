@@ -256,7 +256,10 @@ def dvd_add(request):
                 dvd = dvd_form.save(commit=False)
                 dvd.is_downloaded = False
                 dvd.save()
-                messages.success(request, f'"{dvd.name}" has been added to your collection.')
+                # Refresh YTS data immediately to populate torrent badge
+                if dvd.imdb_id:
+                    dvd.refresh_yts_data()
+                messages.success(request, f'"{ dvd.name}" has been added to your collection.')
                 return redirect('tracker:dvd_add')
     return render(request, 'tracker/dvd_add.html', {
         'search_form': search_form, 
@@ -323,6 +326,9 @@ def dvd_add_from_tmdb(request, tmdb_id):
                 if poster_path and not dvd.poster:
                     full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                     tmdb_service.download_poster(dvd, full_poster_url)
+                # Refresh YTS data immediately to populate torrent badge
+                if dvd.imdb_id:
+                    dvd.refresh_yts_data()
                 messages.success(request, f'"{dvd.name}" has been added to your collection.')
                 return redirect('tracker:dvd_add')
         else:
@@ -1676,6 +1682,10 @@ def bulk_upload_process(request):
             if poster_path:
                 full_poster_url = tmdb_service.get_full_poster_url(poster_path)
                 tmdb_service.download_poster(dvd, full_poster_url)
+            
+            # Refresh YTS data immediately to populate torrent badge
+            if dvd.imdb_id:
+                dvd.refresh_yts_data()
             
             results['added'].append(dvd.name)
             

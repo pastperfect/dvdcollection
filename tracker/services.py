@@ -1,10 +1,8 @@
 import requests
 from django.conf import settings
-from django.core.cache import cache
 from django.core.files.base import ContentFile
 import logging
 import os
-import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +18,6 @@ class YTSService:
         if not imdb_id:
             logger.warning("IMDB ID not provided")
             return []
-            
-        # Cache key for torrent data
-        cache_key = f"yts_torrents_{imdb_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
             
         url = f"{self.base_url}/list_movies.json"
         params = {
@@ -44,12 +36,8 @@ class YTSService:
                 movies = data['data']['movies']
                 if movies and len(movies) > 0:
                     torrents = movies[0].get('torrents', [])
-                    # Cache for 6 hours
-                    cache.set(cache_key, torrents, 21600)
                     return torrents
             
-            # Cache empty result for 1 hour to avoid repeated failed requests
-            cache.set(cache_key, [], 3600)
             return []
             
         except requests.RequestException as e:
@@ -95,13 +83,6 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return {'results': [], 'total_results': 0}
             
-        # Create a safe cache key by hashing the query
-        query_hash = hashlib.md5(query.encode('utf-8')).hexdigest()
-        cache_key = f"tmdb_search_{query_hash}_{page}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
-            
         url = f"{self.base_url}/search/movie"
         params = {
             'api_key': self.api_key,
@@ -115,8 +96,6 @@ class TMDBService:
             response.raise_for_status()
             data = response.json()
             
-            # Cache for 1 hour
-            cache.set(cache_key, data, 3600)
             return data
             
         except requests.RequestException as e:
@@ -128,11 +107,6 @@ class TMDBService:
         if not self.api_key:
             logger.warning("TMDB API key not configured")
             return None
-            
-        cache_key = f"tmdb_movie_{movie_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
             
         url = f"{self.base_url}/movie/{movie_id}"
         params = {
@@ -160,8 +134,6 @@ class TMDBService:
             if director:
                 data['director'] = director
             
-            # Cache for 24 hours
-            cache.set(cache_key, data, 86400)
             return data
             
         except requests.RequestException as e:
@@ -174,11 +146,6 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return None
             
-        cache_key = f"tmdb_external_ids_{movie_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
-            
         url = f"{self.base_url}/movie/{movie_id}/external_ids"
         params = {
             'api_key': self.api_key
@@ -189,8 +156,6 @@ class TMDBService:
             response.raise_for_status()
             data = response.json()
             
-            # Cache for 24 hours
-            cache.set(cache_key, data, 86400)
             return data
             
         except requests.RequestException as e:
@@ -203,11 +168,6 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return None
             
-        cache_key = f"tmdb_certifications_{movie_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
-            
         url = f"{self.base_url}/movie/{movie_id}/release_dates"
         params = {
             'api_key': self.api_key
@@ -218,8 +178,6 @@ class TMDBService:
             response.raise_for_status()
             data = response.json()
             
-            # Cache for 24 hours
-            cache.set(cache_key, data, 86400)
             return data
             
         except requests.RequestException as e:
@@ -250,11 +208,6 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return None
             
-        cache_key = f"tmdb_director_{movie_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
-            
         url = f"{self.base_url}/movie/{movie_id}/credits"
         params = {
             'api_key': self.api_key
@@ -275,8 +228,6 @@ class TMDBService:
             # Join multiple directors with commas
             director_string = ', '.join(directors) if directors else None
             
-            # Cache for 24 hours
-            cache.set(cache_key, director_string, 86400)
             return director_string
             
         except requests.RequestException as e:
@@ -289,11 +240,6 @@ class TMDBService:
             logger.warning("TMDB API key not configured")
             return None
 
-        cache_key = f"tmdb_images_{movie_id}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return cached_result
-
         url = f"{self.base_url}/movie/{movie_id}/images"
         params = {
             'api_key': self.api_key
@@ -304,8 +250,6 @@ class TMDBService:
             response.raise_for_status()
             data = response.json()
             
-            # Cache for 24 hours
-            cache.set(cache_key, data, 86400)
             return data
 
         except requests.RequestException as e:
