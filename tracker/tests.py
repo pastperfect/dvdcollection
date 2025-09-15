@@ -1,9 +1,11 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.core.management import call_command
 from .models import DVD
 from .forms import DVDForm
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import ImageFieldFile
+from io import StringIO
 
 
 class DVDModelTest(TestCase):
@@ -449,3 +451,119 @@ class BulkUploadPreviewTest(TestCase):
         # Verify skip message is shown
         self.assertContains(response, 'Skipped')
         self.assertContains(response, 'already have')
+
+
+class NormalizeUKCertificationsCommandTestCase(TestCase):
+    """Test the normalize_uk_certifications management command."""
+    
+    def setUp(self):
+        """Create test DVDs with various certification formats."""
+        self.dvds = []
+        
+        # Create DVDs with various certification formats
+        test_data = [
+            ('Movie A', 'PG'),      # Should be normalized to 'pg'
+            ('Movie B', '12A'),     # Should be normalized to '12a'
+            ('Movie C', 'U'),       # Should be normalized to 'u'
+            ('Movie D', 'pg'),      # Already normalized
+            ('Movie E', '15'),      # Already normalized (numbers)
+            ('Movie F', ''),        # Empty certification
+        ]
+        
+        for name, cert in test_data:
+            dvd = DVD.objects.create(
+                name=name,
+                uk_certification='temp'  # Bypass the save method initially
+            )
+            # Now directly update the certification to bypass the model's save method
+            DVD.objects.filter(pk=dvd.pk).update(uk_certification=cert)
+            dvd.refresh_from_db()
+            self.dvds.append(dvd)
+    
+    def test_dry_run_shows_correct_updates(self):
+        """Test that dry run shows the correct DVDs that need updating."""
+        out = StringIO()
+        call_command('normalize_uk_certifications', '--dry-run', stdout=out)
+        
+        output = out.getvalue()
+        
+        # Should identify 3 DVDs that need updating (PG, 12A, U)
+        self.assertIn('Found 3 DVDs that need certification normalization', output)
+        self.assertIn('Movie A', output)
+        self.assertIn('Movie B', output)
+        self.assertIn('Movie C', output)
+        self.assertIn("'PG' → 'pg'", output)
+        self.assertIn("'12A' → '12a'", output)
+        self.assertIn("'U' → 'u'", output)
+    
+    def test_actual_normalization(self):
+        """Test that the command actually normalizes the certifications."""
+        out = StringIO()
+        call_command('normalize_uk_certifications', stdout=out)
+        
+        output = out.getvalue()
+        
+        # Should update 3 DVDs
+        self.assertIn('Successfully updated 3 DVDs!', output)
+        
+        # Refresh from database and check
+        dvd_a = DVD.objects.get(name='Movie A')
+        dvd_b = DVD.objects.get(name='Movie B')
+        dvd_c = DVD.objects.get(name='Movie C')
+        dvd_d = DVD.objects.get(name='Movie D')
+        dvd_e = DVD.objects.get(name='Movie E')
+        
+        self.assertEqual(dvd_a.uk_certification, 'pg')
+        self.assertEqual(dvd_b.uk_certification, '12a')
+        self.assertEqual(dvd_c.uk_certification, 'u')
+        self.assertEqual(dvd_d.uk_certification, 'pg')  # Should remain unchanged
+        self.assertEqual(dvd_e.uk_certification, '15')  # Should remain unchanged
+    
+    def test_verbose_output(self):
+        """Test that verbose mode shows detailed output."""
+        out = StringIO()
+        call_command('normalize_uk_certifications', '--verbose', stdout=out)
+        
+        output = out.getvalue()
+        
+        # Should show detailed information
+        self.assertIn('Movie A', output)
+        self.assertIn('✅ Updated', output)
+        self.assertIn('Certification:', output)
+    
+    def test_already_normalized_collection(self):
+        """Test behavior when all certifications are already normalized."""
+        # First normalize everything
+        call_command('normalize_uk_certifications')
+        
+        # Then run again
+        out = StringIO()
+        call_command('normalize_uk_certifications', '--dry-run', stdout=out)
+        
+        output = out.getvalue()
+        self.assertIn('All UK certifications are already normalized!', output)
+    
+    def test_certification_stats_display(self):
+        """Test that certification statistics are displayed correctly."""
+        out = StringIO()
+        call_command('normalize_uk_certifications', '--dry-run', stdout=out)
+        
+        output = out.getvalue()
+        
+        # Should show statistics
+        self.assertIn('Current UK Certification Distribution:', output)
+        self.assertIn('(no certification):', output)
+    
+    def test_model_save_method_normalizes(self):
+        """Test that the DVD model's save method automatically normalizes certifications."""
+        dvd = DVD(name='Test Movie', uk_certification='PG')
+        dvd.save()
+        
+        # Should be automatically normalized
+        self.assertEqual(dvd.uk_certification, 'pg')
+        
+        # Test updating existing
+        dvd.uk_certification = '12A'
+        dvd.save()
+        
+        self.assertEqual(dvd.uk_certification, '12a')

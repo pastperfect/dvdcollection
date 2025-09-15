@@ -1271,6 +1271,28 @@ def admin_settings(request):
         models.Q(yts_last_updated__lt=timezone.now() - timedelta(weeks=1))
     ).exclude(imdb_id='').exclude(imdb_id__isnull=True).count()
     
+    # Get UK certification statistics
+    dvds_with_certifications = DVD.objects.filter(
+        models.Q(uk_certification__isnull=False) & 
+        ~models.Q(uk_certification='')
+    ).count()
+    
+    # Find certifications that need normalization
+    certifications_needing_update = 0
+    for dvd in DVD.objects.filter(
+        models.Q(uk_certification__isnull=False) & 
+        ~models.Q(uk_certification='')
+    ):
+        if dvd.uk_certification and dvd.uk_certification != dvd.uk_certification.lower():
+            certifications_needing_update += 1
+    
+    # Calculate normalized statistics
+    certifications_normalized = dvds_with_certifications - certifications_needing_update
+    certification_normalized_percentage = (
+        (certifications_normalized / dvds_with_certifications * 100) 
+        if dvds_with_certifications > 0 else 100
+    )
+    
     if request.method == 'POST':
         # Handle torrent operations
         if 'refresh_flags' in request.POST:
@@ -1308,6 +1330,27 @@ def admin_settings(request):
                 messages.info(request, 'No DVDs were refreshed. They may already be up to date.')
             return redirect('tracker:admin_settings')
         
+        elif 'normalize_certifications' in request.POST:
+            # Normalize UK certifications to lowercase
+            dvds_with_certifications = DVD.objects.filter(
+                models.Q(uk_certification__isnull=False) & 
+                ~models.Q(uk_certification='')
+            )
+            
+            updated_count = 0
+            for dvd in dvds_with_certifications:
+                original = dvd.uk_certification
+                if original and original != original.lower():
+                    dvd.uk_certification = original.lower()
+                    dvd.save(update_fields=['uk_certification'])
+                    updated_count += 1
+            
+            if updated_count > 0:
+                messages.success(request, f'Normalized UK certifications for {updated_count} DVDs.')
+            else:
+                messages.info(request, 'All UK certifications are already normalized.')
+            return redirect('tracker:admin_settings')
+        
         # Handle TMDB settings
         elif 'tmdb_api_key' in request.POST:
             tmdb_api_key = request.POST.get('tmdb_api_key', '').strip()
@@ -1327,6 +1370,10 @@ def admin_settings(request):
         'dvds_without_torrents': dvds_without_torrents,
         'stale_torrent_data': stale_torrent_data,
         'torrent_coverage': (dvds_with_torrents / total_dvds * 100) if total_dvds > 0 else 0,
+        'dvds_with_certifications': dvds_with_certifications,
+        'certifications_needing_update': certifications_needing_update,
+        'certifications_normalized': certifications_normalized,
+        'certification_normalized_percentage': certification_normalized_percentage,
         'page_title': 'Admin Settings',
         'page_icon': 'gear',
     }

@@ -373,6 +373,140 @@
             </div>
         </div>
 
+        <!-- UK Certification Management -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> UK Certification Management</h5>
+            </div>
+            <div class="card-body">
+                <!-- Certification Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="card-title text-info">
+                                    <i class="bi bi-bar-chart"></i> Certification Statistics
+                                </h6>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="d-flex flex-column">
+                                            <span class="h4 text-success mb-0">{{ dvds_with_certifications }}</span>
+                                            <small class="text-muted">With Certifications</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex flex-column">
+                                            <span class="h4 {% if certifications_needing_update > 0 %}text-warning{% else %}text-success{% endif %} mb-0">{{ certifications_needing_update }}</span>
+                                            <small class="text-muted">Need Normalization</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" 
+                                         style="width: {{ certification_normalized_percentage|floatformat:0 }}%"
+                                         title="{{ certification_normalized_percentage|floatformat:1 }}% normalized">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    {% if dvds_with_certifications > 0 %}
+                                        Normalized: {{ certification_normalized_percentage|floatformat:1 }}% 
+                                        ({{ certifications_normalized }} of {{ dvds_with_certifications }} total)
+                                    {% else %}
+                                        No certifications found
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-secondary">
+                            <div class="card-body">
+                                <h6 class="card-title text-secondary">
+                                    <i class="bi bi-info-circle"></i> Normalization Info
+                                </h6>
+                                <p class="card-text small text-muted mb-3">
+                                    UK certifications should be in lowercase for consistency. 
+                                    Examples: "pg", "12a", "15", "18", "u"
+                                </p>
+                                <ul class="list-unstyled mb-0 small">
+                                    <li class="text-info">
+                                        <i class="bi bi-check-circle"></i> Ensures data consistency
+                                    </li>
+                                    <li class="text-info">
+                                        <i class="bi bi-search"></i> Improves filtering accuracy
+                                    </li>
+                                    <li class="text-info">
+                                        <i class="bi bi-sort-alpha-down"></i> Better sorting results
+                                    </li>
+                                    <li class="text-info">
+                                        <i class="bi bi-database"></i> Database optimization
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certification Actions -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6 class="mb-2">Normalize UK Certifications</h6>
+                        <p class="text-muted mb-0">
+                            Convert all UK certification values to lowercase for consistency and better data management.
+                            This operation will update certifications like "PG" → "pg", "12A" → "12a", etc.
+                        </p>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            {% if certifications_needing_update > 0 %}
+                                Will update {{ certifications_needing_update }} certification{{ certifications_needing_update|pluralize }} that need normalization.
+                            {% else %}
+                                All certifications are already normalized.
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center justify-content-end">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    name="normalize_certifications" 
+                                    class="btn {% if certifications_needing_update > 0 %}btn-warning{% else %}btn-outline-success{% endif %} btn-sm"
+                                    {% if certifications_needing_update == 0 %}disabled{% endif %}>
+                                <i class="bi bi-check2-square"></i> 
+                                {% if certifications_needing_update > 0 %}
+                                    Normalize ({{ certifications_needing_update }})
+                                {% else %}
+                                    Already Normalized
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Command Line Instructions -->
+                {% if certifications_needing_update > 0 %}
+                <div class="alert alert-info mt-3">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-terminal"></i> Command Line Alternative
+                    </h6>
+                    <p class="mb-2">You can also run this operation from the command line:</p>
+                    <div class="bg-dark text-light p-2 rounded">
+                        <code class="text-light">
+                            # Preview what will be updated (dry run)<br>
+                            python manage.py normalize_uk_certifications --dry-run<br><br>
+                            # Perform the actual update<br>
+                            python manage.py normalize_uk_certifications --verbose
+                        </code>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        Use --dry-run to preview changes before applying them.
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Export Functions -->
         <div class="card mb-4">
             <div class="card-header">
