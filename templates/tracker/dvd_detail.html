@@ -48,14 +48,24 @@
                         <p class="detail-tagline text-muted fst-italic">{{ dvd.tagline }}</p>
                     {% endif %}
                 </div>
-                <!-- UK Certification Image -->
-                {% if dvd.uk_certification %}
-                <div class="certification-container">
-                    <img src="/media/certifications/{{ dvd.uk_certification }}.svg" 
-                         alt="{{ dvd.uk_certification }} Certificate" 
-                         class="certification-image">
+                <!-- UK Certification and Blu-Ray Images -->
+                <div class="d-flex align-items-center gap-2">
+                    {% if dvd.uk_certification %}
+                    <div class="certification-container">
+                        <img src="/media/certifications/{{ dvd.uk_certification }}.svg" 
+                             alt="{{ dvd.uk_certification }} Certificate" 
+                             class="certification-image">
+                    </div>
+                    {% endif %}
+                    {% if dvd.disk_type == 'BluRay' %}
+                    <div class="bluray-container">
+                        <img src="data:image/png;base64,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" 
+                             alt="Blu-Ray Disc" 
+                             class="bluray-image"
+                             style="width: 40px; height: 40px;">
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
 
