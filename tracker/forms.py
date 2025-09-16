@@ -58,6 +58,16 @@ class DVDSearchForm(forms.Form):
 class DVDForm(forms.ModelForm):
     """Form for creating/editing DVD entries."""
     
+    # Add custom field for Blu-Ray checkbox
+    is_bluray = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        help_text='Check if this is a Blu-Ray disc'
+    )
+    
     class Meta:
         model = DVD
         fields = [
@@ -65,6 +75,7 @@ class DVDForm(forms.ModelForm):
             'is_tartan_dvd', 'is_box_set', 'box_set_name', 'is_unopened', 'is_unwatched', 'storage_box', 'location',
             'copy_number', 'duplicate_notes'
         ]
+        # Note: disk_type is handled via the is_bluray checkbox
         widgets = {
             'tmdb_id': forms.HiddenInput(),
             'name': forms.TextInput(attrs={
@@ -137,6 +148,9 @@ class DVDForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Initialize checkbox based on disk_type value
+        if self.instance and self.instance.disk_type == 'BluRay':
+            self.fields['is_bluray'].initial = True
         # Add some JavaScript to show/hide box set name field
         self.fields['box_set_name'].widget.attrs['style'] = 'display: none;' if not self.instance.is_box_set else ''
         # Show/hide location field based on status
@@ -201,6 +215,15 @@ class DVDForm(forms.ModelForm):
             cleaned_data['location'] = ''
             
         return cleaned_data
+    
+    def save(self, commit=True):
+        """Override save to handle disk_type from is_bluray checkbox."""
+        instance = super().save(commit=False)
+        # Set disk_type based on checkbox
+        instance.disk_type = 'BluRay' if self.cleaned_data.get('is_bluray') else 'DVD'
+        if commit:
+            instance.save()
+        return instance
 
 
 class DVDFilterForm(forms.Form):
@@ -394,6 +417,15 @@ class BulkUploadForm(forms.Form):
             'placeholder': 'Enter location...'
         }),
         help_text='Default location for unboxed movies'
+    )
+    
+    default_is_bluray = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        help_text='Mark all uploaded movies as Blu-Ray discs'
     )
 
 

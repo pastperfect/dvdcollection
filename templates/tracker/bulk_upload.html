@@ -74,6 +74,14 @@
                                         </div>
                                         
                                         <div class="form-check mb-3">
+                                            {{ form.default_is_bluray }}
+                                            <label class="form-check-label" for="{{ form.default_is_bluray.id_for_label }}">
+                                                Blu-Ray
+                                            </label>
+                                            <div class="form-text">{{ form.default_is_bluray.help_text }}</div>
+                                        </div>
+                                        
+                                        <div class="form-check mb-3">
                                             {{ form.default_is_box_set }}
                                             <label class="form-check-label" for="{{ form.default_is_box_set.id_for_label }}">
                                                 Part of Box Set

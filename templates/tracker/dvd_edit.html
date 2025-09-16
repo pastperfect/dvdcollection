@@ -84,6 +84,17 @@
                             </div>
                             
                             <div class="form-check mb-3">
+                                {{ form.is_bluray }}
+                                <label class="form-check-label" for="{{ form.is_bluray.id_for_label }}">
+                                    Blu-Ray
+                                </label>
+                                <div class="form-text">{{ form.is_bluray.help_text }}</div>
+                                {% if form.is_bluray.errors %}
+                                    <div class="text-danger">{{ form.is_bluray.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-check mb-3">
                                 {{ form.is_unopened }}
                                 <label class="form-check-label" for="{{ form.is_unopened.id_for_label }}">
                                     Still Unopened

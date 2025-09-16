@@ -44,10 +44,16 @@ class DVD(models.Model):
         ('rip', 'Rip'),
     ]
 
+    DISK_TYPE_CHOICES = [
+    ('DVD', 'DVD'),
+    ('BluRay', 'BluRay'),
+    ]
+
     # Basic info
     name = models.CharField(max_length=255)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='kept')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default='physical')
+    disk_type = models.CharField(max_length=10, choices=DISK_TYPE_CHOICES, default='DVD')
     
     # DVD specific info
     is_tartan_dvd = models.BooleanField(default=False, help_text='Is this a Tartan DVD release?')

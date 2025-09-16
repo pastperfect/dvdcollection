@@ -6,6 +6,7 @@ from .forms import DVDForm
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import ImageFieldFile
 from io import StringIO
+from datetime import datetime
 
 
 class DVDModelTest(TestCase):
@@ -185,7 +186,9 @@ class BulkUploadPreviewTest(TestCase):
                 'default_box_set_name': '',
                 'default_is_unopened': False,
                 'default_is_unwatched': True,
-                'default_storage_box': ''
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False
             },
             'matches': [
                 {
@@ -202,7 +205,7 @@ class BulkUploadPreviewTest(TestCase):
                     'error': None
                 }
             ],
-            'timestamp': '2025-09-05T12:00:00'
+            'timestamp': datetime.now().isoformat()
         }
         session.save()
 
@@ -225,7 +228,9 @@ class BulkUploadPreviewTest(TestCase):
                 'default_box_set_name': '',
                 'default_is_unopened': False,
                 'default_is_unwatched': True,
-                'default_storage_box': ''
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False
             },
             'matches': [
                 {
@@ -246,7 +251,7 @@ class BulkUploadPreviewTest(TestCase):
                     'error': None
                 }
             ],
-            'timestamp': '2025-09-05T12:00:00'
+            'timestamp': datetime.now().isoformat()
         }
         session.save()
 
@@ -295,7 +300,9 @@ class BulkUploadPreviewTest(TestCase):
                 'default_box_set_name': '',
                 'default_is_unopened': False,
                 'default_is_unwatched': True,
-                'default_storage_box': ''
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False
             },
             'matches': [
                 {
@@ -316,7 +323,7 @@ class BulkUploadPreviewTest(TestCase):
                     'error': None
                 }
             ],
-            'timestamp': '2025-09-05T12:00:00'
+            'timestamp': datetime.now().isoformat()
         }
         session.save()
 
@@ -352,7 +359,9 @@ class BulkUploadPreviewTest(TestCase):
                 'default_box_set_name': '',
                 'default_is_unopened': False,
                 'default_is_unwatched': True,
-                'default_storage_box': ''
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False
             },
             'matches': [
                 {
@@ -373,7 +382,7 @@ class BulkUploadPreviewTest(TestCase):
                     'error': None
                 }
             ],
-            'timestamp': '2025-09-05T12:00:00'
+            'timestamp': datetime.now().isoformat()
         }
         session.save()
 
@@ -414,7 +423,9 @@ class BulkUploadPreviewTest(TestCase):
                 'default_box_set_name': '',
                 'default_is_unopened': False,
                 'default_is_unwatched': True,
-                'default_storage_box': ''
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False
             },
             'matches': [
                 {
@@ -435,7 +446,7 @@ class BulkUploadPreviewTest(TestCase):
                     'error': None
                 }
             ],
-            'timestamp': '2025-09-05T12:00:00'
+            'timestamp': datetime.now().isoformat()
         }
         session.save()
 
@@ -567,3 +578,179 @@ class NormalizeUKCertificationsCommandTestCase(TestCase):
         dvd.save()
         
         self.assertEqual(dvd.uk_certification, '12a')
+
+
+class BluRayFormTest(TestCase):
+    """Test the Blu-Ray checkbox functionality in forms."""
+    
+    def test_dvd_form_bluray_checkbox_default_dvd(self):
+        """Test that DVDForm creates DVD disk_type when checkbox is unchecked."""
+        form_data = {
+            'name': 'Test Movie',
+            'status': 'kept',
+            'media_type': 'physical',
+            'overview': 'Test overview',
+            'copy_number': 1,
+            'is_bluray': False  # Checkbox unchecked
+        }
+        
+        form = DVDForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        
+        dvd = form.save()
+        self.assertEqual(dvd.disk_type, 'DVD')
+    
+    def test_dvd_form_bluray_checkbox_creates_bluray(self):
+        """Test that DVDForm creates BluRay disk_type when checkbox is checked."""
+        form_data = {
+            'name': 'Test BluRay Movie',
+            'status': 'kept',
+            'media_type': 'physical',
+            'overview': 'Test BluRay overview',
+            'copy_number': 1,
+            'is_bluray': True  # Checkbox checked
+        }
+        
+        form = DVDForm(data=form_data)
+        self.assertTrue(form.is_valid())
+        
+        dvd = form.save()
+        self.assertEqual(dvd.disk_type, 'BluRay')
+    
+    def test_dvd_form_edit_existing_bluray(self):
+        """Test that editing an existing BluRay DVD initializes checkbox correctly."""
+        # Create a BluRay DVD
+        dvd = DVD.objects.create(
+            name="Existing BluRay Movie",
+            status="kept",
+            media_type="physical",
+            disk_type="BluRay"
+        )
+        
+        # Create form with the existing DVD instance
+        form = DVDForm(instance=dvd)
+        
+        # Check that the checkbox is initialized as checked
+        self.assertTrue(form.fields['is_bluray'].initial)
+    
+    def test_dvd_form_edit_existing_dvd(self):
+        """Test that editing an existing DVD initializes checkbox as unchecked."""
+        # Create a regular DVD
+        dvd = DVD.objects.create(
+            name="Existing DVD Movie",
+            status="kept",
+            media_type="physical",
+            disk_type="DVD"
+        )
+        
+        # Create form with the existing DVD instance
+        form = DVDForm(instance=dvd)
+        
+        # Check that the checkbox is initialized as unchecked
+        self.assertFalse(form.fields['is_bluray'].initial)
+
+
+class BulkUploadBluRayTest(TestCase):
+    """Test the bulk upload functionality with Blu-Ray checkbox."""
+    
+    def test_bulk_upload_with_bluray_checkbox(self):
+        """Test that Blu-Ray checkbox works in bulk upload."""
+        session = self.client.session
+        session['bulk_upload_data'] = {
+            'form_defaults': {
+                'default_status': 'kept',
+                'default_media_type': 'physical',
+                'skip_existing': True,
+                'default_is_tartan_dvd': False,
+                'default_is_box_set': False,
+                'default_box_set_name': '',
+                'default_is_unopened': False,
+                'default_is_unwatched': True,
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': True,  # Test BluRay checkbox
+            },
+            'matches': [
+                {
+                    'original_title': 'Test BluRay Movie',
+                    'tmdb_data': {
+                        'id': 12345,
+                        'title': 'Test BluRay Movie',
+                        'overview': 'A test movie for BluRay',
+                        'release_date': '2023-01-01',
+                        'runtime': 120,
+                        'genres': [{'name': 'Action'}],
+                        'vote_average': 7.5,
+                        'imdb_id': 'tt1234567'
+                    },
+                    'confirmed': True,
+                    'removed': False,
+                    'poster_url': None,
+                    'error': None
+                }
+            ],
+            'timestamp': datetime.now().isoformat()
+        }
+        session.save()
+
+        # Submit to process view
+        response = self.client.post(reverse('tracker:bulk_upload_process'))
+        
+        # Check that redirect occurred (successful processing)
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify DVD was created with BluRay disk_type
+        dvd = DVD.objects.get(tmdb_id=12345)
+        self.assertEqual(dvd.disk_type, 'BluRay')
+        self.assertEqual(dvd.name, 'Test BluRay Movie')
+    
+    def test_bulk_upload_with_dvd_checkbox_unchecked(self):
+        """Test that unchecked Blu-Ray checkbox creates DVD disk_type in bulk upload."""
+        session = self.client.session
+        session['bulk_upload_data'] = {
+            'form_defaults': {
+                'default_status': 'kept',
+                'default_media_type': 'physical',
+                'skip_existing': True,
+                'default_is_tartan_dvd': False,
+                'default_is_box_set': False,
+                'default_box_set_name': '',
+                'default_is_unopened': False,
+                'default_is_unwatched': True,
+                'default_storage_box': '',
+                'default_location': '',
+                'default_is_bluray': False,  # Test unchecked BluRay checkbox
+            },
+            'matches': [
+                {
+                    'original_title': 'Test DVD Movie',
+                    'tmdb_data': {
+                        'id': 54321,
+                        'title': 'Test DVD Movie',
+                        'overview': 'A test movie for DVD',
+                        'release_date': '2023-01-01',
+                        'runtime': 120,
+                        'genres': [{'name': 'Drama'}],
+                        'vote_average': 6.5,
+                        'imdb_id': 'tt7654321'
+                    },
+                    'confirmed': True,
+                    'removed': False,
+                    'poster_url': None,
+                    'error': None
+                }
+            ],
+            'timestamp': datetime.now().isoformat()
+        }
+        session.save()
+
+        # Submit to process view
+        response = self.client.post(reverse('tracker:bulk_upload_process'))
+        
+        # Check that redirect occurred (successful processing)
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify DVD was created with DVD disk_type
+        dvd = DVD.objects.get(tmdb_id=54321)
+        self.assertEqual(dvd.disk_type, 'DVD')
+        self.assertEqual(dvd.name, 'Test DVD Movie')

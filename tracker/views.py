@@ -472,7 +472,8 @@ def bulk_upload(request):
                 'default_is_unopened': form.cleaned_data['default_is_unopened'],
                 'default_is_unwatched': form.cleaned_data['default_is_unwatched'],
                 'default_storage_box': form.cleaned_data['default_storage_box'],
-                'default_location': form.cleaned_data['default_location']
+                'default_location': form.cleaned_data['default_location'],
+                'default_is_bluray': form.cleaned_data['default_is_bluray']
             }
             
             tmdb_service = TMDBService()
@@ -1938,6 +1939,7 @@ def bulk_upload_process(request):
                 'copy_number': copy_number,  # Set the proper copy number
                 'status': form_defaults['default_status'],
                 'media_type': form_defaults['default_media_type'],
+                'disk_type': 'BluRay' if form_defaults['default_is_bluray'] else 'DVD',
                 'is_tartan_dvd': form_defaults['default_is_tartan_dvd'],
                 'is_box_set': form_defaults['default_is_box_set'],
                 'box_set_name': form_defaults['default_box_set_name'] if form_defaults['default_is_box_set'] else '',
